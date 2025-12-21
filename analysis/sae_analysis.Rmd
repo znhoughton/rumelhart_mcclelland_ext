@@ -1,0 +1,128 @@
+---
+title: "sae_analysis"
+author: "Zachary Houghton"
+date: "2025-12-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+```
+
+## 
+
+```{r}
+#!/usr/bin/env Rscript
+
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(purrr)
+library(readr)
+
+# ----------------------------
+# Config
+# ----------------------------
+INPUT_CSV <- "../Data/sae_latents_long.csv"
+
+# proportion of verbs in latent that must show the pattern
+MIN_PROP <- 0.6
+
+# minimum number of verbs for a latent to be analyzed
+MIN_N <- 1
+
+# ----------------------------
+# Helpers
+# ----------------------------
+
+split_phones <- function(x) {
+  str_split(x, "\\s+")[[1]]
+}
+
+extract_ngrams <- function(phones, n) {
+  if (length(phones) < n) return(character(0))
+  map_chr(seq_len(length(phones) - n + 1),
+          ~ paste(phones[.x:(.x + n - 1)], collapse = " "))
+}
+
+# ----------------------------
+# Load data
+# ----------------------------
+df <- read_csv(INPUT_CSV, show_col_types = FALSE)
+
+# Use PRESENT phones to find stem patterns
+df <- df %>%
+  mutate(
+    phones = map(present_phones, split_phones),
+    initial = map_chr(phones, ~ .x[1]),
+    any_phone = phones,
+    bi = map(phones, extract_ngrams, n = 2),
+    tri = map(phones, extract_ngrams, n = 3)
+  )
+
+# ----------------------------
+# Long-format features
+# ----------------------------
+
+initial_df <- df %>%
+  select(latent_id, lemma, feature = initial) %>%
+  mutate(type = "initial")
+
+any_phone_df <- df %>%
+  select(latent_id, lemma, feature = any_phone) %>%
+  unnest(feature) %>%
+  mutate(type = "phone_anywhere")
+
+bi_df <- df %>%
+  select(latent_id, lemma, feature = bi) %>%
+  unnest(feature) %>%
+  mutate(type = "biphone")
+
+tri_df <- df %>%
+  select(latent_id, lemma, feature = tri) %>%
+  unnest(feature) %>%
+  mutate(type = "triphone")
+
+features_long <- bind_rows(
+  initial_df,
+  any_phone_df,
+  bi_df,
+  tri_df
+)
+
+# ----------------------------
+# Pattern strength per latent
+# ----------------------------
+latent_sizes <- df %>%
+  distinct(latent_id, lemma) %>%
+  count(latent_id, name = "n_verbs")
+
+patterns <- features_long %>%
+  distinct(latent_id, lemma, type, feature) %>%
+  count(latent_id, type, feature, name = "count") %>%
+  left_join(latent_sizes, by = "latent_id") %>%
+  mutate(prop = count / n_verbs) %>%
+  filter(
+    n_verbs >= MIN_N,
+    prop >= MIN_PROP
+  ) %>%
+  arrange(latent_id, desc(prop), desc(count))
+
+# ----------------------------
+# Output
+# ----------------------------
+write_csv(patterns, "latent_phonological_patterns.csv")
+
+cat("✅ Wrote latent_phonological_patterns.csv\n")
+cat("Rows:", nrow(patterns), "\n")
+
+# ----------------------------
+# Optional: pretty print top patterns
+# ----------------------------
+patterns %>%
+  group_by(latent_id) %>%
+  slice_max(prop, n = 5) %>%
+  ungroup() %>%
+  print(n = 50)
+
+```
