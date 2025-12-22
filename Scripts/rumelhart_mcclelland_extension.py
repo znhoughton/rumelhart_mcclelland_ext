@@ -42,18 +42,19 @@ UNIGRAM_PREFIX = "googlebooks-eng-all-1gram-20120701-"
 
 MAX_PHONES = 10
 HIDDEN_SIZE = 256
-NUM_HIDDEN_LAYERS = 1  
+NUM_HIDDEN_LAYERS = 3  
 EPOCHS = 2000
 LR = 0.01
 TEST_RATIO = 0.2
 MAX_REPS = 40
 SEED = 0
-MODEL_PATH = "../models/past_tense_net.pt"
+
+
 
 # ============================================================
 # Master mode switch
 # ============================================================
-TRAIN_SAE_MODE = True  # <-- flip THIS only
+TRAIN_SAE_MODE = True
 
 # ============================================================
 # Derived configuration (DO NOT EDIT BELOW)
@@ -81,14 +82,42 @@ SAE_HIDDEN_SIZE = 512
 SAE_L1 = 1e-3
 SAE_EPOCHS = 200
 SAE_LR = 1e-3
-SAE_PATH = "../models/sae.pt"
 SAE_TOP_K = 10
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 random.seed(SEED)
 torch.manual_seed(SEED)
 
+# ------------------------------------------------------------
+# SAE placement
+# ------------------------------------------------------------
+# None  → attach SAE to final hidden layer (default)
+# 0     → after first hidden layer
+# 1     → after second hidden layer
+# ...
+SAE_LAYER = None
 
+if SAE_LAYER is not None and SAE_LAYER >= NUM_HIDDEN_LAYERS:
+    raise ValueError(
+        f"SAE_LAYER={SAE_LAYER} but model only has "
+        f"{NUM_HIDDEN_LAYERS} hidden layers"
+    )
+
+# ============================================================
+# Model identity tag (used for saving/loading)
+# ============================================================
+BASE_MODEL_TAG = f"L{NUM_HIDDEN_LAYERS}_H{HIDDEN_SIZE}"
+BASE_MODEL_PATH = f"../models/past_tense_net_{BASE_MODEL_TAG}.pt"
+
+
+if SAE_LAYER is None:
+    MODEL_TAG = BASE_MODEL_TAG
+else:
+    MODEL_TAG = f"{BASE_MODEL_TAG}_SAE@L{SAE_LAYER+1}"
+
+
+MODEL_PATH = f"../models/past_tense_net_{MODEL_TAG}.pt"
+SAE_PATH   = f"../models/sae_{MODEL_TAG}.pt"
 # ============================================================
 # Utilities
 # ============================================================
@@ -330,14 +359,40 @@ class PastTenseNet(nn.Module):
 
         self.output = nn.Linear(hid, out)
 
-    def forward(self, x, return_hidden=False):
+    def forward(self, x, return_hidden=False, return_all_hidden=False):
         h = x
+        hidden_states = []
+
         for layer in self.hidden_layers:
             h = torch.tanh(layer(h))
+            hidden_states.append(h)
 
+        y = self.output(h)
+
+        if return_all_hidden:
+            return y, hidden_states
         if return_hidden:
-            return self.output(h), h
-        return self.output(h)
+            return y, h
+        return y
+
+def get_sae_hidden(hidden_states, sae_layer):
+    """
+    hidden_states: list of tensors, one per hidden layer
+    sae_layer:
+        None → final hidden layer
+        int  → specific layer index
+    """
+    if sae_layer is None:
+        return hidden_states[-1]
+
+    if sae_layer < 0 or sae_layer >= len(hidden_states):
+        raise ValueError(
+            f"Invalid SAE_LAYER={sae_layer}; "
+            f"model has {len(hidden_states)} hidden layers"
+        )
+
+    return hidden_states[sae_layer]
+
 
 class SparseAutoencoder(nn.Module):
     def __init__(self, input_dim, hidden_dim, top_k=None):
@@ -480,9 +535,17 @@ def main():
     # ---------------------------
     # Optionally load model
     # ---------------------------
-    if LOAD_MODEL and os.path.exists(MODEL_PATH):
-        ckpt = torch.load(MODEL_PATH, map_location=DEVICE)
+    if LOAD_MODEL:
+        if not os.path.exists(BASE_MODEL_PATH):
+            raise RuntimeError(
+                f"Base model not found at {BASE_MODEL_PATH}. "
+                "You must train the base model first."
+            )
+
+        ckpt = torch.load(BASE_MODEL_PATH, map_location=DEVICE)
         model.load_state_dict(ckpt["state_dict"])
+        print(f"📦 Loaded base past tense model from {BASE_MODEL_PATH}")
+
         print(f"📦 Loaded past tense model from {MODEL_PATH}")
 
     # ---------------------------
@@ -621,7 +684,9 @@ def main():
 
             model.eval()
             with torch.no_grad():
-                _, hidden_train = model(X_sae, return_hidden=True)
+                _, hidden_states = model(X_sae, return_all_hidden=True)
+                hidden_train = get_sae_hidden(hidden_states, SAE_LAYER)
+
 
             # IMPORTANT: SAE input dim must match hidden_train dim
             if sae.encoder.in_features != hidden_train.shape[1]:
@@ -694,8 +759,10 @@ def main():
                 model.train()
                 opt_ft.zero_grad()
 
-                y_hat, h = model(X, return_hidden=True)
-                _, z = sae(h)
+                y_hat, hidden_states = model(X, return_all_hidden=True)
+                h_sae = get_sae_hidden(hidden_states, SAE_LAYER)
+                _, z = sae(h_sae)
+
 
                 task_loss = ((y_hat - Y) ** 2).mean()
                 sparsity_penalty = z.abs().mean()

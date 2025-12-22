@@ -36,10 +36,24 @@ from rumelhart_mcclelland_extension import (
 )
 
 # --------------------------------------------------
+# Model identity (MUST match training script)
+# --------------------------------------------------
+NUM_HIDDEN_LAYERS = 3  
+HIDDEN_SIZE = 256
+SAE_LAYER = None
+
+BASE_MODEL_TAG = f"L{NUM_HIDDEN_LAYERS}_H{HIDDEN_SIZE}"
+
+if SAE_LAYER is None:
+    MODEL_TAG = BASE_MODEL_TAG
+else:
+    MODEL_TAG = f"{BASE_MODEL_TAG}_SAE@L{SAE_LAYER+1}"
+
+# --------------------------------------------------
 # Paths
 # --------------------------------------------------
-MODEL_PATH = "../models/past_tense_net.pt"
-SAE_PATH   = "../models/sae.pt"
+MODEL_PATH = f"../models/past_tense_net_{BASE_MODEL_TAG}.pt"
+SAE_PATH   = f"../models/sae_{MODEL_TAG}.pt"
 CACHE_DIR  = "../Data/data_cache"
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -48,12 +62,22 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Args
 # --------------------------------------------------
 parser = argparse.ArgumentParser()
-parser.add_argument("--out_dir", type=str, default="../Data/sae_latents")
+parser.add_argument(
+    "--out_dir",
+    type=str,
+    default=f"../Data/sae_latents_{MODEL_TAG}"
+)
 parser.add_argument("--min_activation", type=float, default=0.0)
 args = parser.parse_args()
 
 OUT_DIR = args.out_dir
 MIN_ACT = args.min_activation
+
+print(f"🔧 Using model tag: {MODEL_TAG}")
+print(f"📄 Model path: {MODEL_PATH}")
+print(f"📄 SAE path:   {SAE_PATH}")
+print(f"📁 Output dir: {OUT_DIR}")
+
 
 os.makedirs(OUT_DIR, exist_ok=True)
 

@@ -16,11 +16,30 @@ import os
 import csv
 import glob
 
+# --------------------------------------------------
+# Model identity (MUST match export script)
+# --------------------------------------------------
+NUM_HIDDEN_LAYERS = 3   
+HIDDEN_SIZE = 256
+SAE_LAYER = None
+
+BASE_MODEL_TAG = f"L{NUM_HIDDEN_LAYERS}_H{HIDDEN_SIZE}"
+
+if SAE_LAYER is None:
+    MODEL_TAG = BASE_MODEL_TAG
+else:
+    MODEL_TAG = f"{BASE_MODEL_TAG}_SAE@L{SAE_LAYER+1}"
+
+
 # ----------------------------
 # Config
 # ----------------------------
-LATENT_DIR = "../Data/sae_latents"
-OUT_PATH   = "../Data/sae_latents_long.csv"
+LATENT_DIR = f"../Data/sae_latents_{MODEL_TAG}"
+OUT_PATH   = f"../Data/sae_latents_long_{MODEL_TAG}.csv"
+
+print(f"🔧 Using model tag: {MODEL_TAG}")
+print(f"📁 Latent dir: {LATENT_DIR}")
+print(f"📄 Output file: {OUT_PATH}")
 
 # ----------------------------
 # Collect files

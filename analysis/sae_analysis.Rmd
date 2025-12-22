@@ -13,13 +13,7 @@ output: html_document
 
 ```{r}
 
-library(dplyr)
-library(stringr)
-library(purrr)
-library(readr)
-library(tidyr)
-
-INPUT_CSV <- "../Data/sae_latents_long.csv"
+library(tidyverse)
 
 MIN_LEN <- 1          # minimum phones in pattern
 MIN_WSUP <- 0.7       # minimum activation-weighted support
@@ -55,56 +49,176 @@ remove_dominated <- function(df) {
   df[keep, ]
 }
 
-df <- read_csv(INPUT_CSV, show_col_types = FALSE) %>%
-  mutate(
-    phones = map(present_phones, split_phones),
-    activation = as.numeric(activation)
-  ) %>%
-  filter(is.finite(activation), activation > 0)
+```
 
-patterns <- df %>%
-  select(latent_id, lemma, activation, phones) %>%
-  mutate(substrings = map(phones, all_substrings)) %>%
-  unnest(substrings) %>%
-  transmute(
-    latent_id,
-    lemma,
-    activation,
-    pattern = substrings,
-    length = str_count(pattern, " ") + 1
-  ) %>%
-  filter(length >= MIN_LEN) %>%
-  distinct(latent_id, lemma, pattern, length, .keep_all = TRUE) %>%
-  group_by(latent_id, pattern, length) %>%
-  summarise(
-    # total activation mass among words that contain pattern
-    act_sum_in_pattern = sum(activation),
-    # how many distinct words contain it (still useful to inspect)
-    n_verbs = n_distinct(lemma),
-    .groups = "drop"
-  ) %>%
-  group_by(latent_id) %>%
-  mutate(
-    act_total = sum(df$activation[df$latent_id == first(latent_id)]),  # total activation in latent
-    w_support = act_sum_in_pattern / act_total,
-    score = w_support * (length ^ ALPHA)
-  ) %>%
-  ungroup() %>%
-  filter(w_support >= MIN_WSUP)
+```{r}
+#write_csv(patterns_ranked, "../Data/latent_patterns_weighted_length_reward.csv")
+```
 
-patterns_ranked <- patterns %>%
-  group_by(latent_id) %>%
-  slice_max(
-    order_by = score,
-    n = 1,
-    with_ties = FALSE
-  ) %>%
-  ungroup()
+```{r}
+MODEL_TAGS <- c(
+  "L1_H256",
+  "L2_H256",
+  "L3_H256",
+  "L3_H256_SAE@L1",
+  "L3_H256_SAE@L2"
+)
 
+extract_patterns_for_model <- function(model_tag,
+                                       data_dir = "../Data",
+                                       min_len = 1,
+                                       min_wsup = 0.7,
+                                       alpha = 1.25,
+                                       top_k = 50) {
+
+  input_csv <- file.path(
+    data_dir,
+    paste0("sae_latents_long_", model_tag, ".csv")
+  )
+
+  message("🔎 Processing ", model_tag)
+
+  df <- read_csv(input_csv, show_col_types = FALSE) %>%
+    mutate(
+      phones = map(present_phones, split_phones),
+      activation = as.numeric(activation)
+    ) %>%
+    filter(is.finite(activation), activation > 0)
+
+  patterns <- df %>%
+    select(latent_id, lemma, activation, phones) %>%
+    mutate(substrings = map(phones, all_substrings)) %>%
+    unnest(substrings) %>%
+    transmute(
+      latent_id,
+      lemma,
+      activation,
+      pattern = substrings,
+      length = str_count(pattern, " ") + 1
+    ) %>%
+    filter(length >= min_len) %>%
+    distinct(latent_id, lemma, pattern, length, .keep_all = TRUE) %>%
+    group_by(latent_id, pattern, length) %>%
+    summarise(
+      act_sum_in_pattern = sum(activation),
+      n_verbs = n_distinct(lemma),
+      .groups = "drop"
+    ) %>%
+    group_by(latent_id) %>%
+    mutate(
+      act_total = sum(df$activation[df$latent_id == first(latent_id)]),
+      w_support = act_sum_in_pattern / act_total,
+      score = w_support * (length ^ alpha)
+    ) %>%
+    ungroup() %>%
+    filter(w_support >= min_wsup)
+
+  patterns_ranked <- patterns %>%
+    group_by(latent_id) %>%
+    slice_max(order_by = score, n = 1, with_ties = FALSE) %>%
+    ungroup() %>%
+    mutate(model_tag = model_tag)
+
+  patterns_ranked
+}
+
+
+patterns_by_model <- map(
+  MODEL_TAGS,
+  extract_patterns_for_model
+)
+
+names(patterns_by_model) <- MODEL_TAGS
 
 
 ```
 
 ```{r}
-write_csv(patterns_ranked, "../Data/latent_patterns_weighted_length_reward.csv")
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(purrr)
+
+extract_phones <- function(pattern) {
+  str_split(pattern, "\\s+")[[1]]
+}
+
+patterns_all <- bind_rows(patterns_by_model)
+
+# ---- model-level summary ----
+patterns_all %>%
+  group_by(model_tag) %>%
+  summarise(
+    mean_motif_len = mean(length),
+    mean_support   = mean(w_support),
+    .groups = "drop"
+  )
+
+# ---- phone diversity per latent ----
+latent_phone_stats <- patterns_all %>%
+  mutate(phones = map(pattern, extract_phones)) %>%
+  group_by(model_tag, latent_id) %>%
+  summarise(
+    n_phones   = length(unique(unlist(phones))),
+    phones_set = list(sort(unique(unlist(phones)))),
+    .groups = "drop"
+  )
+
+# ---- model-level phone diversity ----
+phone_diversity_summary <- latent_phone_stats %>%
+  group_by(model_tag) %>%
+  summarise(
+    n_latents        = n(),
+    mean_n_phones    = mean(n_phones),
+    median_n_phones  = median(n_phones),
+    sd_n_phones      = sd(n_phones),
+    min_n_phones     = min(n_phones),
+    max_n_phones     = max(n_phones),
+    .groups = "drop"
+  )
+
+
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(latent_phone_stats, aes(x = model_tag, y = n_phones)) +
+  geom_violin(trim = FALSE, fill = "gray85") +
+  geom_boxplot(width = 0.15, outlier.shape = NA) +
+  labs(
+    x = "Model",
+    y = "Number of distinct phones in latent motif",
+    title = "Phone diversity per latent by model"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+
+```
+
+```{r}
+ggplot(latent_phone_stats, aes(x = n_phones)) +
+  geom_histogram(binwidth = 1, boundary = 0, fill = "steelblue", color = "white") +
+  facet_wrap(~ model_tag, scales = "free_y") +
+  labs(
+    x = "Number of distinct phones",
+    y = "Number of latents",
+    title = "Distribution of phone diversity per latent"
+  ) +
+  theme_minimal(base_size = 13)
+
+```
+
+```{r}
+ggplot(latent_phone_stats, aes(x = n_phones, color = model_tag)) +
+  geom_density(linewidth = 1) +
+  labs(
+    x = "Number of distinct phones",
+    y = "Density",
+    title = "Phone diversity distribution by model"
+  ) +
+  theme_minimal(base_size = 13)
+
 ```
