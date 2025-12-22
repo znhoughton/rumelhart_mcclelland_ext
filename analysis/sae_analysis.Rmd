@@ -12,117 +12,99 @@ output: html_document
 ## 
 
 ```{r}
-#!/usr/bin/env Rscript
 
 library(dplyr)
 library(stringr)
-library(tidyr)
 library(purrr)
 library(readr)
+library(tidyr)
 
-# ----------------------------
-# Config
-# ----------------------------
 INPUT_CSV <- "../Data/sae_latents_long.csv"
 
-# proportion of verbs in latent that must show the pattern
-MIN_PROP <- 0.6
+MIN_LEN <- 1          # minimum phones in pattern
+MIN_WSUP <- 0.7       # minimum activation-weighted support
+ALPHA <- 1.25          # length reward exponent
+TOP_K <- 50           # patterns per latent
 
-# minimum number of verbs for a latent to be analyzed
-MIN_N <- 1
+split_phones <- function(x) str_split(x, "\\s+")[[1]]
 
-# ----------------------------
-# Helpers
-# ----------------------------
-
-split_phones <- function(x) {
-  str_split(x, "\\s+")[[1]]
+all_substrings <- function(phones) {
+  n <- length(phones)
+  out <- character(0)
+  for (i in seq_len(n)) {
+    for (j in i:n) {
+      out <- c(out, paste(phones[i:j], collapse = " "))
+    }
+  }
+  out
 }
 
-extract_ngrams <- function(phones, n) {
-  if (length(phones) < n) return(character(0))
-  map_chr(seq_len(length(phones) - n + 1),
-          ~ paste(phones[.x:(.x + n - 1)], collapse = " "))
+# Keep patterns that are not "dominated" by a longer one with >= same w_support.
+remove_dominated <- function(df) {
+  # df must already be sorted descending by length then score
+  keep <- logical(nrow(df))
+  for (i in seq_len(nrow(df))) {
+    pat <- df$pattern[i]
+    # if there exists a longer pattern that contains this pattern and has >= same w_support,
+    # then the shorter is probably not the real pattern
+    longer <- df %>%
+      filter(length > df$length[i], w_support >= df$w_support[i]) %>%
+      pull(pattern)
+    keep[i] <- !any(str_detect(longer, fixed(pat)))
+  }
+  df[keep, ]
 }
 
-# ----------------------------
-# Load data
-# ----------------------------
-df <- read_csv(INPUT_CSV, show_col_types = FALSE)
-
-# Use PRESENT phones to find stem patterns
-df <- df %>%
+df <- read_csv(INPUT_CSV, show_col_types = FALSE) %>%
   mutate(
     phones = map(present_phones, split_phones),
-    initial = map_chr(phones, ~ .x[1]),
-    any_phone = phones,
-    bi = map(phones, extract_ngrams, n = 2),
-    tri = map(phones, extract_ngrams, n = 3)
-  )
-
-# ----------------------------
-# Long-format features
-# ----------------------------
-
-initial_df <- df %>%
-  select(latent_id, lemma, feature = initial) %>%
-  mutate(type = "initial")
-
-any_phone_df <- df %>%
-  select(latent_id, lemma, feature = any_phone) %>%
-  unnest(feature) %>%
-  mutate(type = "phone_anywhere")
-
-bi_df <- df %>%
-  select(latent_id, lemma, feature = bi) %>%
-  unnest(feature) %>%
-  mutate(type = "biphone")
-
-tri_df <- df %>%
-  select(latent_id, lemma, feature = tri) %>%
-  unnest(feature) %>%
-  mutate(type = "triphone")
-
-features_long <- bind_rows(
-  initial_df,
-  any_phone_df,
-  bi_df,
-  tri_df
-)
-
-# ----------------------------
-# Pattern strength per latent
-# ----------------------------
-latent_sizes <- df %>%
-  distinct(latent_id, lemma) %>%
-  count(latent_id, name = "n_verbs")
-
-patterns <- features_long %>%
-  distinct(latent_id, lemma, type, feature) %>%
-  count(latent_id, type, feature, name = "count") %>%
-  left_join(latent_sizes, by = "latent_id") %>%
-  mutate(prop = count / n_verbs) %>%
-  filter(
-    n_verbs >= MIN_N,
-    prop >= MIN_PROP
+    activation = as.numeric(activation)
   ) %>%
-  arrange(latent_id, desc(prop), desc(count))
+  filter(is.finite(activation), activation > 0)
 
-# ----------------------------
-# Output
-# ----------------------------
-write_csv(patterns, "latent_phonological_patterns.csv")
-
-cat("✅ Wrote latent_phonological_patterns.csv\n")
-cat("Rows:", nrow(patterns), "\n")
-
-# ----------------------------
-# Optional: pretty print top patterns
-# ----------------------------
-patterns %>%
+patterns <- df %>%
+  select(latent_id, lemma, activation, phones) %>%
+  mutate(substrings = map(phones, all_substrings)) %>%
+  unnest(substrings) %>%
+  transmute(
+    latent_id,
+    lemma,
+    activation,
+    pattern = substrings,
+    length = str_count(pattern, " ") + 1
+  ) %>%
+  filter(length >= MIN_LEN) %>%
+  distinct(latent_id, lemma, pattern, length, .keep_all = TRUE) %>%
+  group_by(latent_id, pattern, length) %>%
+  summarise(
+    # total activation mass among words that contain pattern
+    act_sum_in_pattern = sum(activation),
+    # how many distinct words contain it (still useful to inspect)
+    n_verbs = n_distinct(lemma),
+    .groups = "drop"
+  ) %>%
   group_by(latent_id) %>%
-  slice_max(prop, n = 5) %>%
+  mutate(
+    act_total = sum(df$activation[df$latent_id == first(latent_id)]),  # total activation in latent
+    w_support = act_sum_in_pattern / act_total,
+    score = w_support * (length ^ ALPHA)
+  ) %>%
   ungroup() %>%
-  print(n = 50)
+  filter(w_support >= MIN_WSUP)
 
+patterns_ranked <- patterns %>%
+  group_by(latent_id) %>%
+  slice_max(
+    order_by = score,
+    n = 1,
+    with_ties = FALSE
+  ) %>%
+  ungroup()
+
+
+
+```
+
+```{r}
+write_csv(patterns_ranked, "../Data/latent_patterns_weighted_length_reward.csv")
 ```
