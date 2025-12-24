@@ -8,7 +8,7 @@ English Past Tense Learner
 """
 
 from __future__ import annotations
-
+import csv
 import os
 import re
 import math
@@ -16,6 +16,7 @@ import random
 import urllib.request
 from dataclasses import dataclass
 from typing import Dict, List, Tuple, Set
+
 from collections import defaultdict
 
 import gzip
@@ -26,7 +27,18 @@ import torch
 import torch.nn as nn
 import json
 
+from dataclasses import dataclass
 
+@dataclass
+class ExperimentConfig:
+    hidden_size: int
+    num_hidden_layers: int
+    use_sae: bool
+    train_sae: bool
+    finetune_with_sae: bool
+    sae_layer: int | None
+
+N_SAMPLES = 80000
 # ============================================================
 # Configuration
 # ============================================================
@@ -40,47 +52,30 @@ UNIGRAM_CACHE_PATH = os.path.join(CACHE_DIR, "google_1gram_cache.json")
 UNIGRAM_BASE = "http://storage.googleapis.com/books/ngrams/books/"
 UNIGRAM_PREFIX = "googlebooks-eng-all-1gram-20120701-"
 
+
+LOG_WEIGHT = False
+
 MAX_PHONES = 10
-HIDDEN_SIZE = 256
-NUM_HIDDEN_LAYERS = 3  
+
 EPOCHS = 2000
-LR = 0.01
+LR = 0.001
 TEST_RATIO = 0.2
-MAX_REPS = 40
+MAX_REPS = None
 SEED = 0
 
 
+EARLY_STOPPING = True
+ES_PATIENCE = 500        # epochs without improvement
+ES_MIN_DELTA = 1e-5      # minimum improvement
+ES_MIN_EPOCHS = 750      # don't stop before this
 
-# ============================================================
-# Master mode switch
-# ============================================================
-TRAIN_SAE_MODE = True
-
-# ============================================================
-# Derived configuration (DO NOT EDIT BELOW)
-# ============================================================
-
-if TRAIN_SAE_MODE:
-    # We are training the SAE on a pretrained base model
-    SAVE_MODEL = False
-    LOAD_MODEL = True
-
-    USE_SAE = True
-    TRAIN_SAE = True
-    FINETUNE_WITH_SAE = False
-
-else:
-    # Normal base-model training / evaluation
-    SAVE_MODEL = True
-    LOAD_MODEL = False
-
-    USE_SAE = False
-    TRAIN_SAE = False
-    FINETUNE_WITH_SAE = False
-
+SAE_EARLY_STOPPING = True
+SAE_ES_PATIENCE   = 500      # epochs without improvement
+SAE_ES_MIN_DELTA  = 1e-5     # absolute improvement threshold
+SAE_ES_MIN_EPOCHS = 750      # don't stop too early
 SAE_HIDDEN_SIZE = 512
 SAE_L1 = 1e-3
-SAE_EPOCHS = 200
+SAE_EPOCHS = 40000
 SAE_LR = 1e-3
 SAE_TOP_K = 10
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -88,39 +83,121 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 random.seed(SEED)
 torch.manual_seed(SEED)
 
-# ------------------------------------------------------------
-# SAE placement
-# ------------------------------------------------------------
-# None  → attach SAE to final hidden layer (default)
-# 0     → after first hidden layer
-# 1     → after second hidden layer
-# ...
-SAE_LAYER = None
 
-if SAE_LAYER is not None and SAE_LAYER >= NUM_HIDDEN_LAYERS:
-    raise ValueError(
-        f"SAE_LAYER={SAE_LAYER} but model only has "
-        f"{NUM_HIDDEN_LAYERS} hidden layers"
-    )
-
-# ============================================================
-# Model identity tag (used for saving/loading)
-# ============================================================
-BASE_MODEL_TAG = f"L{NUM_HIDDEN_LAYERS}_H{HIDDEN_SIZE}"
-BASE_MODEL_PATH = f"../models/past_tense_net_{BASE_MODEL_TAG}.pt"
-
-
-if SAE_LAYER is None:
-    MODEL_TAG = BASE_MODEL_TAG
-else:
-    MODEL_TAG = f"{BASE_MODEL_TAG}_SAE@L{SAE_LAYER+1}"
-
-
-MODEL_PATH = f"../models/past_tense_net_{MODEL_TAG}.pt"
-SAE_PATH   = f"../models/sae_{MODEL_TAG}.pt"
 # ============================================================
 # Utilities
 # ============================================================
+def cross_entropy_phone_loss(logits, targets, vocab_size, criterion):
+    """
+    logits:  [batch, MAX_PHONES * vocab_size]
+    targets: [batch, MAX_PHONES * vocab_size] (one-hot)
+    """
+    B = logits.size(0)
+
+    logits = logits.view(B, MAX_PHONES, vocab_size)
+    targets = targets.view(B, MAX_PHONES, vocab_size)
+
+    target_ids = targets.argmax(dim=2)  # [B, MAX_PHONES]
+
+    logits = logits.view(B * MAX_PHONES, vocab_size)
+    target_ids = target_ids.view(B * MAX_PHONES)
+
+    return criterion(logits, target_ids)
+
+def count_stem_mismatches(pres: List[str], past: List[str]) -> int:
+    """
+    Counts mismatches in the shared stem region,
+    using phones_match() for tolerance.
+    """
+    mismatches = 0
+    L = min(len(pres), len(past))
+    for i in range(L):
+        if not phones_match(pres[i], past[i]):
+            mismatches += 1
+    return mismatches
+
+
+def is_irregular_gold(pres: List[str], gold: List[str]) -> bool:
+    """
+    Gold-only definition of irregularity.
+
+    Regular if:
+      - Past ends in D / T / IH-D
+      - AND stem differs by at most 1 weak phonological change
+
+    Irregular otherwise.
+    """
+    suffix = past_tense_suffix_type(gold)
+
+    # If no regular suffix → irregular
+    if suffix == "OTHER":
+        return True
+
+    # Count phonological stem mismatches
+    mismatches = count_stem_mismatches(pres, gold)
+
+    # Allow up to 1 weak change
+    return mismatches > 1
+
+
+
+
+def write_irregular_results(
+    path: str,
+    rows: list[dict],
+):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    write_header = not os.path.exists(path)
+
+    with open(path, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+        if write_header:
+            writer.writeheader()
+        writer.writerows(rows)
+
+    print(f"💾 Appended {len(rows)} irregular rows → {path}")
+
+
+def eval_irregular_split(
+    split_name: str,
+    split_data,
+    *,
+    model,
+    phone2idx,
+    idx2phone,
+    model_tag: str,
+):
+    rows = []
+
+    model.eval()
+    with torch.no_grad():
+        for lemma, past_word, pres_phones, past_phones in split_data:
+
+            if not is_irregular_gold(pres_phones, past_phones):
+                continue
+
+            pred = decode(
+                model(encode(pres_phones, phone2idx).to(DEVICE)).cpu(),
+                idx2phone,
+            )
+
+            rows.append({
+                "model_tag": model_tag,
+                "split": split_name,
+                "lemma": lemma,
+                "past_word": past_word,  # handy to keep
+                "present_phones": " ".join(pres_phones),
+                "gold_past_phones": " ".join(past_phones),
+                "pred_past_phones": " ".join(pred),
+                "exact": int(pred == past_phones),
+                "morph_ok": int(morphologically_correct(pred, pres_phones, past_phones)),
+                "edit_distance": edit_distance(pred, past_phones),
+            })
+
+    return rows
+
+
+
 def download(url: str, path: str):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     if not os.path.exists(path):
@@ -129,6 +206,69 @@ def download(url: str, path: str):
 
 def exact_match(pred: List[str], gold: List[str]) -> bool:
     return pred == gold
+
+def explicit_go_test(model, phone2idx, idx2phone, cmu):
+    print("\n=== 🔎 EXPLICIT TEST: GO → WENT ===")
+
+    if "go" not in cmu or "went" not in cmu:
+        print("⚠️ 'go' or 'went' not found in CMUdict")
+        return
+
+    pres = cmu["go"][0]
+    gold = cmu["went"][0]
+
+    with torch.no_grad():
+        pred = decode(
+            model(encode(pres, phone2idx).to(DEVICE)).cpu(),
+            idx2phone,
+        )
+
+    print(f"Input phones : {' '.join(pres)}")
+    print(f"Gold past    : {' '.join(gold)}")
+    print(f"Model output : {' '.join(pred)}")
+
+    if pred == gold:
+        print("✅ CORRECT irregular mapping")
+    else:
+        print("❌ INCORRECT")
+
+def model_tag_from_cfg(cfg: ExperimentConfig) -> str:
+    base = f"L{cfg.num_hidden_layers}_H{cfg.hidden_size}"
+    if cfg.use_sae:
+        if cfg.sae_layer is None:
+            return f"{base}_SAE@final"
+        else:
+            return f"{base}_SAE@L{cfg.sae_layer + 1}"
+    return base
+
+RESULTS_DIR = "../Data/model_test_results"
+os.makedirs(RESULTS_DIR, exist_ok=True)
+
+SUMMARY_PATH = os.path.join(RESULTS_DIR, "test_summary.csv")
+
+def append_test_summary(row: dict):
+    write_header = not os.path.exists(SUMMARY_PATH)
+
+    with open(SUMMARY_PATH, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "model_tag",
+                "hidden_size",
+                "num_hidden_layers",
+                "use_sae",
+                "sae_layer",
+                "exact_acc",
+                "morph_acc",
+                "mean_edit_distance",
+                "n_test_items",
+            ],
+        )
+
+        if write_header:
+            writer.writeheader()
+
+        writer.writerow(row)
 
 
 def edit_distance(a: List[str], b: List[str]) -> int:
@@ -157,6 +297,70 @@ def past_tense_suffix_type(phones: List[str]) -> str:
     if phones and phones[-1] == "D":
         return "D"
     return "OTHER"
+
+
+
+def write_split_csv(path, examples):
+    """
+    examples: List of (lemma, past_word, pres_phones, past_phones)
+    """
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            "lemma",
+            "past",
+            "present_phones",
+            "past_phones",
+        ])
+
+        for lemma, past, pres_phones, past_phones in examples:
+            writer.writerow([
+                lemma,
+                past,
+                " ".join(pres_phones),
+                " ".join(past_phones),
+            ])
+
+    print(f"💾 Wrote {len(examples)} rows → {path}")
+
+def write_sampled_train_csv(path, rows):
+    """
+    rows: List of (lemma, present_phones, past_phones)
+    """
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            "lemma",
+            "present_phones",
+            "past_phones",
+        ])
+        for lemma, pres, past in rows:
+            writer.writerow([
+                lemma,
+                " ".join(pres),
+                " ".join(past),
+            ])
+
+    print(f"💾 Wrote fixed sampled training set → {path} ({len(rows)} rows)")
+
+
+def read_sampled_train_csv(path):
+    rows = []
+    with open(path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            rows.append((
+                row["lemma"],
+                row["present_phones"].split(),
+                row["past_phones"].split(),
+            ))
+
+    print(f"📦 Loaded fixed sampled training set → {path} ({len(rows)} rows)")
+    return rows
 
 VOWELS = {
     "AA","AE","AH","AO","AW","AY",
@@ -333,16 +537,33 @@ def get_bulk_unigram_counts(words: Set[str]) -> Dict[str, int]:
 # Encoding
 # ============================================================
 def encode(seq: List[str], phone2idx: Dict[str, int]) -> torch.Tensor:
-    seq = seq[:MAX_PHONES] + ["_"] * max(0, MAX_PHONES - len(seq))
+    seq = seq[: MAX_PHONES - 1]          # reserve space for EOS
+    seq = seq + ["<EOS>"]                # append EOS
+    seq = seq + ["_"] * (MAX_PHONES - len(seq))
+
     vec = torch.zeros(MAX_PHONES * len(phone2idx))
     for i, p in enumerate(seq):
-        vec[i * len(phone2idx) + phone2idx.get(p, phone2idx["_"])] = 1.0
+        vec[i * len(phone2idx) + phone2idx[p]] = 1.0
+
     return vec
+
 
 
 def decode(vec: torch.Tensor, idx2phone: Dict[int, str]) -> List[str]:
     mat = vec.view(MAX_PHONES, len(idx2phone))
-    return [idx2phone[i] for i in mat.argmax(dim=1).tolist() if idx2phone[i] != "_"]
+    out = []
+
+    for row in mat:
+        phone = idx2phone[row.argmax().item()]
+        if phone == "<EOS>":
+            break
+        if phone == "_":
+            continue
+        out.append(phone)
+
+    return out
+
+
 
 
 # ============================================================
@@ -420,40 +641,104 @@ class SparseAutoencoder(nn.Module):
         return x_hat, z
 
 
+unimorph_path = os.path.join(CACHE_DIR, "unimorph_eng.txt")
+cmudict_path = os.path.join(CACHE_DIR, "cmudict.dict")
 
+download(UNIMORPH_URL, unimorph_path)
+download(CMUDICT_URL, cmudict_path)
+
+verb_pairs = load_unimorph(unimorph_path)
+cmu = load_cmudict(cmudict_path)
+
+# Build examples: (lemma_str, past_str, pres_phones, past_phones)
+examples: List[Tuple[str, str, List[str], List[str]]] = []
+for vp in verb_pairs:
+    if vp.lemma in cmu and vp.past in cmu:
+        pres_phones = cmu[vp.lemma][0]
+        past_phones = cmu[vp.past][0]
+        if len(pres_phones) <= MAX_PHONES and len(past_phones) <= MAX_PHONES:
+            examples.append((vp.lemma, vp.past, pres_phones, past_phones))
+
+print(f"Total usable verb pairs: {len(examples)}")
+
+# Train/test split (by example; if you want lemma-split, we can do that too)
+random.shuffle(examples)
 
 # ============================================================
 # Main
 # ============================================================
-def main():
-    unimorph_path = os.path.join(CACHE_DIR, "unimorph_eng.txt")
-    cmudict_path = os.path.join(CACHE_DIR, "cmudict.dict")
+def run_experiment(cfg: ExperimentConfig):
+    HIDDEN_SIZE = cfg.hidden_size
+     # ---------------------------
+    # Per-experiment derived config
+    # ---------------------------
+    NUM_HIDDEN_LAYERS = cfg.num_hidden_layers
+    USE_SAE = cfg.use_sae
+    TRAIN_SAE = cfg.train_sae
+    FINETUNE_WITH_SAE = cfg.finetune_with_sae
+    SAE_LAYER = cfg.sae_layer
 
-    download(UNIMORPH_URL, unimorph_path)
-    download(CMUDICT_URL, cmudict_path)
+    # Safety check for SAE placement
+    if SAE_LAYER is not None and SAE_LAYER >= NUM_HIDDEN_LAYERS:
+        raise ValueError(
+            f"SAE_LAYER={SAE_LAYER} but model has NUM_HIDDEN_LAYERS={NUM_HIDDEN_LAYERS}"
+        )
 
-    verb_pairs = load_unimorph(unimorph_path)
-    cmu = load_cmudict(cmudict_path)
+    # Decide save/load behavior for this run
+    # (you can tweak these defaults)
+    SAVE_MODEL = True
 
-    # Build examples: (lemma_str, past_str, pres_phones, past_phones)
-    examples: List[Tuple[str, str, List[str], List[str]]] = []
-    for vp in verb_pairs:
-        if vp.lemma in cmu and vp.past in cmu:
-            pres_phones = cmu[vp.lemma][0]
-            past_phones = cmu[vp.past][0]
-            if len(pres_phones) <= MAX_PHONES and len(past_phones) <= MAX_PHONES:
-                examples.append((vp.lemma, vp.past, pres_phones, past_phones))
+    # Tags + paths (must be per-experiment to avoid overwriting)
+    BASE_MODEL_TAG = f"L{NUM_HIDDEN_LAYERS}_H{HIDDEN_SIZE}"
 
-    print(f"Total usable verb pairs: {len(examples)}")
+    if USE_SAE:
+        if SAE_LAYER is None:
+            MODEL_TAG = f"{BASE_MODEL_TAG}_SAE@final"
+        else:
+            MODEL_TAG = f"{BASE_MODEL_TAG}_SAE@L{SAE_LAYER+1}"
 
-    # Train/test split (by example; if you want lemma-split, we can do that too)
-    random.shuffle(examples)
+        
+    else:
+        MODEL_TAG = BASE_MODEL_TAG
+
+    MODEL_PATH = f"../models/past_tense_net_{MODEL_TAG}.pt"
+    SAE_PATH   = f"../models/sae_{MODEL_TAG}.pt"
+
+    # IMPORTANT: choose whether the fixed train sample is shared across runs.
+    # If you want it shared across ALL experiments, do NOT include MODEL_TAG here.
+    FIXED_TRAIN_SAMPLE_PATH = (
+        f"../Data/datasets/fixed_train_sample_SEED{SEED}_N{N_SAMPLES}.csv"
+    )
+
+
+
+    
     split1 = int(0.7 * len(examples))
     split2 = int(0.85 * len(examples))
 
     train_raw = examples[:split1]
     val_raw   = examples[split1:split2]
     test      = examples[split2:]
+
+    # --------------------------------------------------
+    # Save dataset splits
+    # --------------------------------------------------
+    DATASET_DIR = "../Data/datasets"
+
+    write_split_csv(
+        f"{DATASET_DIR}/train_{MODEL_TAG}.csv",
+        train_raw
+    )
+
+    write_split_csv(
+        f"{DATASET_DIR}/val_{MODEL_TAG}.csv",
+        val_raw
+    )
+
+    write_split_csv(
+        f"{DATASET_DIR}/test_{MODEL_TAG}.csv",
+        test
+    )
 
     print(
         f"Train pairs: {len(train_raw)} | "
@@ -478,23 +763,47 @@ def main():
         if w in unigram_counts:
             print(f"  {w:10s} -> {unigram_counts[w]}")
 
-    # ---------------------------
-    # Expand training tokens by log frequency
-    # ---------------------------
-    train: List[Tuple[str, List[str], List[str]]] = []
-    print("\nExpanding training tokens by log(freq+1)...")
-    for i, (lemma, past_word, pres_phones, past_phones) in enumerate(train_raw, start=1):
-        freq = unigram_counts.get(past_word, 0)
-        reps = max(1, min(MAX_REPS, int(round(math.log(freq + 1)))))
-        train.extend([(lemma, pres_phones, past_phones)] * reps)
 
-        if i % 50 == 0 or i == len(train_raw):
-            print(
-                f"  [{i:4d}/{len(train_raw)}] "
-                f"past='{past_word:15s}' "
-                f"freq={float(freq):10.2f} "
-                f"reps={reps:2d}"
-            )
+    # ---------------------------
+    # Fixed sampled training set (shared across models)
+    # ---------------------------
+    if os.path.exists(FIXED_TRAIN_SAMPLE_PATH):
+        train = read_sampled_train_csv(FIXED_TRAIN_SAMPLE_PATH)
+
+    else:
+        print("\nSampling training tokens from raw-frequency distribution...")
+
+        # Build frequency weights
+        items = []
+        weights = []
+
+        for lemma, past_word, pres_phones, past_phones in train_raw:
+            freq = unigram_counts.get(past_word, 0)
+            if LOG_WEIGHT:
+                weight = math.log(freq) if freq > 1 else 1
+            else:
+                weight = max(1, freq)
+            items.append((lemma, pres_phones, past_phones))
+            weights.append(weight)
+
+        # IMPORTANT: isolate RNG so sampling is reproducible
+        rng = random.Random(SEED)
+
+        sample_indices = rng.choices(
+            range(len(items)),
+            weights=weights,
+            k=N_SAMPLES
+        )
+
+        train = [items[i] for i in sample_indices]
+
+        write_sampled_train_csv(FIXED_TRAIN_SAMPLE_PATH, train)
+
+    print(f"📊 Training tokens used: {len(train)}")
+
+
+    print(f"Sampled training set size: {len(train)}")
+
 
     print(f"\nExpanded training tokens: {len(train)}")
 
@@ -505,11 +814,20 @@ def main():
     for _lemma, pres_phones, past_phones in train:
         phone_set.update(pres_phones)
         phone_set.update(past_phones)
-    phone_set.add("_")
+    phone_set.update({"_", "<EOS>"})
+
 
     inventory = sorted(phone_set)
     phone2idx = {p: i for i, p in enumerate(inventory)}
     idx2phone = {i: p for p, i in phone2idx.items()}
+
+    PAD_IDX = phone2idx["_"]
+    EOS_IDX = phone2idx["<EOS>"]
+
+    criterion = nn.CrossEntropyLoss(
+        ignore_index=PAD_IDX
+    ).to(DEVICE)
+
 
     X_val = torch.stack(
         [encode(p, phone2idx) for _, _, p, _ in val_raw]
@@ -532,90 +850,114 @@ def main():
         num_hidden=NUM_HIDDEN_LAYERS,
     ).to(DEVICE)
 
-    # ---------------------------
-    # Optionally load model
-    # ---------------------------
-    if LOAD_MODEL:
+    # --------------------------------------------------
+    # Load base model if this experiment depends on it
+    # --------------------------------------------------
+    if USE_SAE:
+        BASE_MODEL_PATH = f"../models/past_tense_net_L{NUM_HIDDEN_LAYERS}_H{HIDDEN_SIZE}.pt"
+
         if not os.path.exists(BASE_MODEL_PATH):
             raise RuntimeError(
-                f"Base model not found at {BASE_MODEL_PATH}. "
-                "You must train the base model first."
+                f"Base model required for SAE but not found: {BASE_MODEL_PATH}"
             )
 
         ckpt = torch.load(BASE_MODEL_PATH, map_location=DEVICE)
         model.load_state_dict(ckpt["state_dict"])
-        print(f"📦 Loaded base past tense model from {BASE_MODEL_PATH}")
+        print(f"📦 Loaded base model → {BASE_MODEL_PATH}")
 
-        print(f"📦 Loaded past tense model from {MODEL_PATH}")
 
     # ---------------------------
     # Train model (unless loaded)
     # ---------------------------
     opt_model = torch.optim.Adam(model.parameters(), lr=LR)
 
-    best_val_loss = float("inf")
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        opt_model,
+        mode="min",
+        factor=0.5,        # halve the LR
+        patience=50,       # wait 50 epochs without improvement
+        threshold=1e-4,    # minimum relative improvement
+        min_lr=1e-5       # don't collapse to zero
+    )
+
+
     best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
     val_history: List[float] = []
 
-    window = 200
-    min_avg_improvement = 1e-5
-    min_epochs_before_check = window
-
-    if LOAD_MODEL:
-        print("⏩ Skipping past tense training (using loaded model).")
-    else:
-        print("\nTraining with windowed early stopping...")
-
+    epochs_no_improve = 0
+    best_val_loss = float("inf")
+    best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
+    if not USE_SAE:
+        print("Training base model")
         for epoch in range(EPOCHS):
             # ---- train ----
             model.train()
             opt_model.zero_grad()
-            train_loss = ((model(X) - Y) ** 2).mean()
+            logits = model(X)
+            train_loss = cross_entropy_phone_loss(
+                logits, Y, len(inventory), criterion
+            )
             train_loss.backward()
             opt_model.step()
 
             # ---- validate ----
             model.eval()
             with torch.no_grad():
-                val_loss = ((model(X_val) - Y_val) ** 2).mean()
+                val_logits = model(X_val)
+                val_loss = cross_entropy_phone_loss(
+                    val_logits, Y_val, len(inventory), criterion
+                )
 
-            val_val = float(val_loss.item())
-            val_history.append(val_val)
+            val_val = val_loss.item()
+            scheduler.step(val_val)
 
-            # ---- track best model ----
-            if val_val < best_val_loss:
+            # ---- early stopping bookkeeping ----
+            if val_val < best_val_loss - ES_MIN_DELTA:
                 best_val_loss = val_val
                 best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
+                epochs_no_improve = 0
+            else:
+                epochs_no_improve += 1
 
+            # ---- logging ----
             if epoch % 100 == 0:
+                lr = opt_model.param_groups[0]["lr"]
                 print(
                     f"Epoch {epoch:4d} | "
                     f"train {train_loss.item():.4f} | "
-                    f"val {val_val:.4f}"
+                    f"val {val_val:.4f} | "
+                    f"lr {lr:.6f} | "
+                    f"no_improve {epochs_no_improve}"
                 )
+                explicit_go_test(model, phone2idx, idx2phone, cmu)
 
-            # ---- windowed stopping ----
-            if epoch + 1 >= min_epochs_before_check:
-                recent = val_history[-window:]
-                improvements = [recent[i - 1] - recent[i] for i in range(1, len(recent))]
-                avg_improvement = sum(improvements) / len(improvements)
-
-                if avg_improvement < min_avg_improvement:
-                    print(
-                        f"\n⏹ Early stopping at epoch {epoch} | "
-                        f"avg improvement {avg_improvement:.6f}"
-                    )
-                    break
-
-        # restore best model
+            # ---- optional stopping ----
+            if (
+                EARLY_STOPPING
+                and epoch >= ES_MIN_EPOCHS
+                and epochs_no_improve >= ES_PATIENCE
+            ):
+                print(
+                    f"\n🛑 Early stopping at epoch {epoch} "
+                    f"(best val={best_val_loss:.4f})"
+                )
+                break
+    else:
+        print("Skipping base training")
+    # ==============================
+    # AFTER LOOP
+    # ==============================
+    if not USE_SAE:
         model.load_state_dict(best_state)
+        print(f"\n✅ Restored best model (val={best_val_loss:.4f})")
+        explicit_go_test(model, phone2idx, idx2phone, cmu)
 
 
     # ---------------------------
     # Save model (optional)
     # ---------------------------
-    if SAVE_MODEL:
-        os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
+    if SAVE_MODEL and not USE_SAE:
+        BASE_MODEL_PATH = f"../models/past_tense_net_L{NUM_HIDDEN_LAYERS}_H{HIDDEN_SIZE}.pt"
         torch.save(
             {
                 "state_dict": model.state_dict(),
@@ -628,9 +970,10 @@ def main():
                     "NUM_HIDDEN_LAYERS": NUM_HIDDEN_LAYERS,
                 },
             },
-            MODEL_PATH,
+            BASE_MODEL_PATH,
         )
-        print(f"💾 Saved past tense model → {MODEL_PATH}")
+        print(f"💾 Saved BASE model → {BASE_MODEL_PATH}")
+
 
     # ---------------------------
     # SAE: train/load (optional) AFTER model is trained/loaded
@@ -699,6 +1042,10 @@ def main():
 
             opt_sae = torch.optim.Adam(sae.parameters(), lr=SAE_LR)
 
+            best_recon = float("inf")
+            best_state = None
+            epochs_no_improve = 0
+
             for epoch in range(SAE_EPOCHS):
                 sae.train()
                 opt_sae.zero_grad()
@@ -706,21 +1053,51 @@ def main():
                 recon, z = sae(hidden_train)
                 recon_loss = ((recon - hidden_train) ** 2).mean()
                 sparsity_loss = z.abs().mean()
+
                 if SAE_TOP_K is not None:
                     loss = recon_loss
                 else:
                     loss = recon_loss + SAE_L1 * sparsity_loss
 
-
                 loss.backward()
                 opt_sae.step()
 
+                recon_val = recon_loss.item()
+
+                # ---- early stopping bookkeeping ----
+                if recon_val < best_recon - SAE_ES_MIN_DELTA:
+                    best_recon = recon_val
+                    best_state = {k: v.detach().clone() for k, v in sae.state_dict().items()}
+                    epochs_no_improve = 0
+                else:
+                    epochs_no_improve += 1
+
+                # ---- logging ----
                 if epoch % 50 == 0:
                     print(
                         f"SAE Epoch {epoch:4d} | "
-                        f"recon {recon_loss.item():.4f} | "
-                        f"sparsity {sparsity_loss.item():.4f}"
+                        f"recon {recon_val:.6f} | "
+                        f"sparsity {sparsity_loss.item():.6f} | "
+                        f"no_improve {epochs_no_improve}"
                     )
+
+                # ---- stopping condition ----
+                if (
+                    SAE_EARLY_STOPPING
+                    and epoch >= SAE_ES_MIN_EPOCHS
+                    and epochs_no_improve >= SAE_ES_PATIENCE
+                ):
+                    print(
+                        f"\n🛑 SAE early stopping at epoch {epoch} "
+                        f"(best recon={best_recon:.6f})"
+                    )
+                    break
+
+            # Restore best SAE
+            if best_state is not None:
+                sae.load_state_dict(best_state)
+                print(f"✅ Restored best SAE (recon={best_recon:.6f})")
+
 
             os.makedirs(os.path.dirname(SAE_PATH), exist_ok=True)
             torch.save(
@@ -752,7 +1129,7 @@ def main():
 
             opt_ft = torch.optim.Adam(model.parameters(), lr=LR * 0.1)
 
-            FT_EPOCHS = 300
+            FT_EPOCHS = 1000
             SAE_PENALTY = 1e-3
 
             for epoch in range(FT_EPOCHS):
@@ -787,17 +1164,21 @@ def main():
 
 
     # ---------------------------
-    # Evaluation
+    # Evaluation + logging
     # ---------------------------
     print("\n=== HELD-OUT VERBS (ACCURACY) ===")
+    wrong_examples = []
+    exact_wrong_but_morph_ok = []
+
+    model_tag = model_tag_from_cfg(cfg)
+    preds_path = os.path.join(RESULTS_DIR, f"test_preds_{model_tag}.csv")
+
+    rows = []
 
     n = 0
     exact = 0
     morph_ok = 0
     edit_dists = []
-
-    wrong_examples = []
-    exact_wrong_but_morph_ok = []
 
     model.eval()
     with torch.no_grad():
@@ -807,31 +1188,33 @@ def main():
                 idx2phone,
             )
 
-            n += 1
-
-            is_exact = (pred == past_phones)
+            ed = edit_distance(pred, past_phones)
+            is_exact = pred == past_phones
             is_morph = morphologically_correct(pred, pres_phones, past_phones)
 
-            if is_exact:
-                exact += 1
-            else:
-                wrong_examples.append((lemma, pres_phones, past_phones, pred))
-                if is_morph:
-                    exact_wrong_but_morph_ok.append((lemma, pres_phones, past_phones, pred))
+            rows.append({
+                "lemma": lemma,
+                "present_phones": " ".join(pres_phones),
+                "gold_past_phones": " ".join(past_phones),
+                "pred_past_phones": " ".join(pred),
+                "exact": int(is_exact),
+                "morph_ok": int(is_morph),
+                "edit_distance": ed,
+            })
 
-            if is_morph:
-                morph_ok += 1
-
-
-            edit_dists.append(edit_distance(pred, past_phones))
+            n += 1
+            exact += int(is_exact)
+            morph_ok += int(is_morph)
+            edit_dists.append(ed)
 
     exact_acc = exact / n
     morph_acc = morph_ok / n
-    mean_edit = sum(edit_dists) / len(edit_dists)
+    mean_edit = sum(edit_dists) / n
 
-    print(f"Exact match accuracy:          {exact_acc:.3f}")
+    print(f"Exact match accuracy:              {exact_acc:.3f}")
     print(f"Morphologically-correct accuracy: {morph_acc:.3f}")
-    print(f"Mean edit distance:           {mean_edit:.3f}")
+    print(f"Mean edit distance:               {mean_edit:.3f}")
+
 
     print("\n=== SAMPLE HELD-OUT ERRORS (EXACT) ===")
     for lemma, pres, gold, pred in wrong_examples[:10]:
@@ -851,7 +1234,25 @@ def main():
             f"pred: {' '.join(pred)}"
         )
 
+    # Write detailed test predictions
+    with open(preds_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
 
+    print(f"💾 Wrote test predictions → {preds_path}")
+
+    append_test_summary({
+        "model_tag": model_tag,
+        "hidden_size": cfg.hidden_size,
+        "num_hidden_layers": cfg.num_hidden_layers,
+        "use_sae": cfg.use_sae,
+        "sae_layer": cfg.sae_layer,
+        "exact_acc": exact_acc,
+        "morph_acc": morph_acc,
+        "mean_edit_distance": mean_edit,
+        "n_test_items": n,
+    })
 
     print("\n=== NONCE VERBS (MORPHOLOGICAL ACCURACY) ===")
 
@@ -875,5 +1276,82 @@ def main():
             print(f"{w:10s} -> {' '.join(pred)} [{suffix}]")
 
 
+    IRREG_PATH = os.path.join(RESULTS_DIR, "irregular_verb_results.csv")
+
+    irregular_rows = []
+    irregular_rows += eval_irregular_split(
+        "train", train_raw,
+        model=model, phone2idx=phone2idx, idx2phone=idx2phone, model_tag=model_tag
+    )
+    irregular_rows += eval_irregular_split(
+        "val", val_raw,
+        model=model, phone2idx=phone2idx, idx2phone=idx2phone, model_tag=model_tag
+    )
+    irregular_rows += eval_irregular_split(
+        "test", test,
+        model=model, phone2idx=phone2idx, idx2phone=idx2phone, model_tag=model_tag
+    )
+
+    if irregular_rows:
+        write_irregular_results(IRREG_PATH, irregular_rows)
+
+
 if __name__ == "__main__":
-    main()
+
+    experiments: list[ExperimentConfig] = []
+
+    # --------------------------------------------------
+    # Base models: 1, 2, 3 hidden layers
+    # --------------------------------------------------
+    for L in [1, 2, 3,4]:
+        experiments.append(
+            ExperimentConfig(
+                hidden_size = 256,
+                num_hidden_layers=L,
+                use_sae=False,
+                train_sae=False,
+                finetune_with_sae=False,
+                sae_layer=None,
+            )
+        )
+
+    # --------------------------------------------------
+    # SAE finetuning on all depths (default = final layer)
+    # --------------------------------------------------
+    for L in [1, 2, 3, 4]:
+        experiments.append(
+            ExperimentConfig(
+                hidden_size = 256,
+                num_hidden_layers=L,
+                use_sae=True,
+                train_sae=True,
+                finetune_with_sae=False,
+                sae_layer=None,
+            )
+        )
+
+    # --------------------------------------------------
+    # Extra SAE placements for 3-layer model
+    # --------------------------------------------------
+    for sae_layer in [0, 1]:
+        for num_hidden_l in [3, 4]:
+            experiments.append(
+                ExperimentConfig(
+                    hidden_size = 256,
+                    num_hidden_layers=num_hidden_l,
+                    use_sae=True,
+                    train_sae=True,
+                    finetune_with_sae=False,
+                    sae_layer=sae_layer,
+                )
+            )
+
+    # --------------------------------------------------
+    # Run serially
+    # --------------------------------------------------
+    for cfg in experiments:
+        print("\n" + "=" * 80)
+        print(f"🚀 Running experiment: {cfg}")
+        print("=" * 80 + "\n")
+
+        run_experiment(cfg)

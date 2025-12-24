@@ -16,7 +16,7 @@ output: html_document
 library(tidyverse)
 
 MIN_LEN <- 1          # minimum phones in pattern
-MIN_WSUP <- 0.7       # minimum activation-weighted support
+MIN_WSUP <- 0      # minimum activation-weighted support
 ALPHA <- 1.25          # length reward exponent
 TOP_K <- 50           # patterns per latent
 
@@ -49,19 +49,87 @@ remove_dominated <- function(df) {
   df[keep, ]
 }
 
+MODEL_TAGS <- c(
+  "L1_H256"
+)
+
+df_for_model <- function(model_tag,
+                                       data_dir = "../Data",
+                                       min_len = 1,
+                                       min_wsup = 0.7,
+                                       alpha = 1.25,
+                                       top_k = 50) {
+
+  input_csv <- file.path(
+    data_dir,
+    paste0("sae_latents_long_", model_tag, ".csv")
+  )
+
+  message("🔎 Processing ", model_tag)
+
+  df <- read_csv(input_csv, show_col_types = FALSE) %>%
+    mutate(
+      phones = map(present_phones, split_phones),
+      activation = as.numeric(activation)
+    ) %>%
+    filter(is.finite(activation), activation > 0)
+}
+
+#df_l1 = df_for_model("L1_H256")
 ```
 
 ```{r}
+min_len = 1
+min_wsup = 0.7
+alpha = 1.25
+top_k = 50
 #write_csv(patterns_ranked, "../Data/latent_patterns_weighted_length_reward.csv")
+df_l3 <- read_csv("../Data/sae_latents_long/L3_H256_SAE@final.csv", show_col_types = FALSE) %>%
+    mutate(
+      phones = map(present_phones, split_phones),
+      activation = as.numeric(activation)
+    ) %>%
+    filter(is.finite(activation), activation > 0)
+
+patterns_l3 <- df_l3 %>%
+  select(latent_id, lemma, activation, phones) %>%
+  mutate(substrings = map(phones, all_substrings)) %>%
+  unnest(substrings) %>%
+  transmute(
+    latent_id,
+    lemma,
+    activation,
+    pattern = substrings,
+    length = str_count(pattern, " ") + 1
+  ) %>%
+  filter(length >= min_len) %>%
+  distinct(latent_id, lemma, pattern, length, .keep_all = TRUE) %>%
+  group_by(latent_id, pattern, length) %>%
+  summarise(
+    act_sum_in_pattern = sum(activation),
+    n_verbs = n_distinct(lemma),
+    .groups = "drop"
+  ) %>%
+  group_by(latent_id) %>%
+  mutate(
+    act_total = sum(df_l3$activation[df_l3$latent_id == first(latent_id)]),
+    w_support = act_sum_in_pattern / act_total,
+    score = w_support * (length ^ alpha)
+  ) %>%
+  ungroup() %>%
+  filter(w_support >= min_wsup)
 ```
 
 ```{r}
 MODEL_TAGS <- c(
-  "L1_H256",
-  "L2_H256",
-  "L3_H256",
+  "L1_H256_SAE@final",
+  "L2_H256_SAE@final",
+  "L3_H256_SAE@final",
   "L3_H256_SAE@L1",
-  "L3_H256_SAE@L2"
+  "L3_H256_SAE@L2",
+  "L4_H256_SAE@final",
+  "L4_H256_SAE@L1",
+  "L4_H256_SAE@L2"
 )
 
 extract_patterns_for_model <- function(model_tag,
@@ -73,7 +141,7 @@ extract_patterns_for_model <- function(model_tag,
 
   input_csv <- file.path(
     data_dir,
-    paste0("sae_latents_long_", model_tag, ".csv")
+    paste0("sae_latents_long/", model_tag, ".csv")
   )
 
   message("🔎 Processing ", model_tag)
@@ -200,7 +268,7 @@ ggplot(latent_phone_stats, aes(x = model_tag, y = n_phones)) +
 
 ```{r}
 ggplot(latent_phone_stats, aes(x = n_phones)) +
-  geom_histogram(binwidth = 1, boundary = 0, fill = "steelblue", color = "white") +
+  geom_histogram(binwidth = 0.5, boundary = 0, fill = "steelblue", color = "white") +
   facet_wrap(~ model_tag, scales = "free_y") +
   labs(
     x = "Number of distinct phones",
@@ -220,5 +288,9 @@ ggplot(latent_phone_stats, aes(x = n_phones, color = model_tag)) +
     title = "Phone diversity distribution by model"
   ) +
   theme_minimal(base_size = 13)
+
+```
+
+```{r}
 
 ```

@@ -1,87 +1,139 @@
 #!/usr/bin/env python3
 """
-Merge per-latent SAE CSVs into one long table.
+Merge per-latent SAE CSVs into one long table
+for ALL experiment configurations.
 
-Input:
-    sae_latents/
+Input (per experiment):
+    ../Data/sae_latents/{MODEL_TAG}/
         latent_0000.csv
         latent_0001.csv
         ...
 
-Output:
-    sae_latents_long.csv
+Output (per experiment):
+    ../Data/sae_latents_long/{MODEL_TAG}.csv
 """
 
 import os
 import csv
 import glob
+from typing import List
 
-# --------------------------------------------------
-# Model identity (MUST match export script)
-# --------------------------------------------------
-NUM_HIDDEN_LAYERS = 3   
-HIDDEN_SIZE = 256
-SAE_LAYER = None
-
-BASE_MODEL_TAG = f"L{NUM_HIDDEN_LAYERS}_H{HIDDEN_SIZE}"
-
-if SAE_LAYER is None:
-    MODEL_TAG = BASE_MODEL_TAG
-else:
-    MODEL_TAG = f"{BASE_MODEL_TAG}_SAE@L{SAE_LAYER+1}"
+from rumelhart_mcclelland_extension import ExperimentConfig
 
 
-# ----------------------------
-# Config
-# ----------------------------
-LATENT_DIR = f"../Data/sae_latents_{MODEL_TAG}"
-OUT_PATH   = f"../Data/sae_latents_long_{MODEL_TAG}.csv"
+# ============================================================
+# Helper: derive MODEL_TAG exactly as in export script
+# ============================================================
+def model_tag_from_cfg(cfg: ExperimentConfig) -> str:
+    base = f"L{cfg.num_hidden_layers}_H{cfg.hidden_size}"
 
-print(f"🔧 Using model tag: {MODEL_TAG}")
-print(f"📁 Latent dir: {LATENT_DIR}")
-print(f"📄 Output file: {OUT_PATH}")
+    if cfg.sae_layer is None:
+        return f"{base}_SAE@final"
+    else:
+        return f"{base}_SAE@L{cfg.sae_layer + 1}"
 
-# ----------------------------
-# Collect files
-# ----------------------------
-files = sorted(glob.glob(os.path.join(LATENT_DIR, "latent_*.csv")))
 
-if not files:
-    raise RuntimeError(f"No latent CSVs found in {LATENT_DIR}")
+# ============================================================
+# Merge one experiment
+# ============================================================
+def merge_one_experiment(
+    cfg: ExperimentConfig,
+    latent_root="../Data/sae_latents",
+    out_root="../Data/sae_latents_long",
+):
+    model_tag = model_tag_from_cfg(cfg)
 
-print(f"🔎 Found {len(files)} latent CSV files")
+    latent_dir = os.path.join(latent_root, model_tag)
+    out_path = os.path.join(out_root, f"{model_tag}.csv")
 
-# ----------------------------
-# Merge
-# ----------------------------
-rows_written = 0
+    if not os.path.isdir(latent_dir):
+        print(f"⚠️  Skipping {model_tag}: no latent directory")
+        return
 
-with open(OUT_PATH, "w", newline="", encoding="utf-8") as out_f:
-    writer = csv.writer(out_f)
+    files = sorted(glob.glob(os.path.join(latent_dir, "latent_*.csv")))
+    if not files:
+        print(f"⚠️  Skipping {model_tag}: no latent CSVs")
+        return
 
-    # unified header
-    writer.writerow([
-        "latent_id",
-        "activation",
-        "lemma",
-        "present_phones",
-        "past_phones",
-    ])
+    os.makedirs(out_root, exist_ok=True)
 
-    for path in files:
-        latent_id = int(os.path.basename(path).split("_")[1].split(".")[0])
+    print(f"\n🔧 Merging SAE latents for {model_tag}")
+    print(f"📁 Input dir : {latent_dir}")
+    print(f"📄 Output    : {out_path}")
+    print(f"🔎 Files     : {len(files)}")
 
-        with open(path, newline="", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
+    rows_written = 0
 
-            for row in reader:
-                writer.writerow([
-                    latent_id,
-                    float(row["activation"]),
-                    row["lemma"],
-                    row["present_phones"],
-                    row["past_phones"],
-                ])
-                rows_written += 1
+    with open(out_path, "w", newline="", encoding="utf-8") as out_f:
+        writer = csv.writer(out_f)
 
-print(f"✅ Wrote {rows_written:,} rows → {OUT_PATH}")
+        writer.writerow([
+            "latent_id",
+            "activation",
+            "lemma",
+            "present_phones",
+            "past_phones",
+        ])
+
+        for path in files:
+            latent_id = int(
+                os.path.basename(path)
+                .replace("latent_", "")
+                .replace(".csv", "")
+            )
+
+            with open(path, newline="", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    writer.writerow([
+                        latent_id,
+                        float(row["activation"]),
+                        row["lemma"],
+                        row["present_phones"],
+                        row["past_phones"],
+                    ])
+                    rows_written += 1
+
+    print(f"✅ Wrote {rows_written:,} rows")
+
+
+# ============================================================
+# Experiment grid (MUST match export script)
+# ============================================================
+experiments: List[ExperimentConfig] = []
+
+# SAE on final layer
+# Base SAE on final layer
+
+for L in [1, 2, 3, 4]:
+    experiments.append(
+        ExperimentConfig(
+            hidden_size = 256,
+            num_hidden_layers=L,
+            use_sae=True,
+            train_sae=True,
+            finetune_with_sae=False,
+            sae_layer=None,
+        )
+    )
+
+# SAE placements for 3-layer model
+for sae_layer in [0, 1]:
+    for num_hidden_l in [3, 4]:
+        experiments.append(
+            ExperimentConfig(
+                hidden_size = 256,
+                num_hidden_layers=num_hidden_l,
+                use_sae=True,
+                train_sae=True,
+                finetune_with_sae=False,
+                sae_layer=sae_layer,
+            )
+        )
+
+
+# ============================================================
+# Run
+# ============================================================
+for cfg in experiments:
+    merge_one_experiment(cfg)

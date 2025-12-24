@@ -24,6 +24,11 @@ import torch
 from typing import List, Tuple
 from collections import defaultdict
 
+def get_sae_hidden(hidden_states, sae_layer):
+    if sae_layer is None:
+        return hidden_states[-1]
+    return hidden_states[sae_layer]
+
 # --------------------------------------------------
 # IMPORT YOUR MODEL CODE
 # --------------------------------------------------
@@ -33,161 +38,188 @@ from rumelhart_mcclelland_extension import (
     encode,
     load_unimorph,
     load_cmudict,
+    ExperimentConfig
 )
 
-# --------------------------------------------------
-# Model identity (MUST match training script)
-# --------------------------------------------------
-NUM_HIDDEN_LAYERS = 3  
-HIDDEN_SIZE = 256
-SAE_LAYER = None
+def export_sae_latents_for_experiment(
+    cfg,
+    out_root="../Data/sae_latents",
+    min_activation=0.0,
+    cache_dir="../Data/data_cache",
+    device=None,
+):
+    """
+    Export SAE latent activations for a single ExperimentConfig.
 
-BASE_MODEL_TAG = f"L{NUM_HIDDEN_LAYERS}_H{HIDDEN_SIZE}"
+    Creates:
+        out_root/{MODEL_TAG}/latent_XXXX.csv
+    """
 
-if SAE_LAYER is None:
-    MODEL_TAG = BASE_MODEL_TAG
-else:
-    MODEL_TAG = f"{BASE_MODEL_TAG}_SAE@L{SAE_LAYER+1}"
+    device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# --------------------------------------------------
-# Paths
-# --------------------------------------------------
-MODEL_PATH = f"../models/past_tense_net_{BASE_MODEL_TAG}.pt"
-SAE_PATH   = f"../models/sae_{MODEL_TAG}.pt"
-CACHE_DIR  = "../Data/data_cache"
+    # --------------------------------------------------
+    # Derive tags + paths
+    # --------------------------------------------------
+    BASE_MODEL_TAG = f"L{cfg.num_hidden_layers}_H{cfg.hidden_size}"
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if cfg.use_sae:
+        if cfg.sae_layer is None:
+            MODEL_TAG = f"{BASE_MODEL_TAG}_SAE@final"
+        else:
+            MODEL_TAG = f"{BASE_MODEL_TAG}_SAE@L{cfg.sae_layer + 1}"
+    else:
+        raise ValueError("export_sae_latents_for_experiment requires USE_SAE=True")
 
-# --------------------------------------------------
-# Args
-# --------------------------------------------------
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--out_dir",
-    type=str,
-    default=f"../Data/sae_latents_{MODEL_TAG}"
-)
-parser.add_argument("--min_activation", type=float, default=0.0)
-args = parser.parse_args()
+    MODEL_PATH = f"../models/past_tense_net_{BASE_MODEL_TAG}.pt"
+    SAE_PATH   = f"../models/sae_{MODEL_TAG}.pt"
 
-OUT_DIR = args.out_dir
-MIN_ACT = args.min_activation
+    OUT_DIR = os.path.join(out_root, MODEL_TAG)
+    os.makedirs(OUT_DIR, exist_ok=True)
 
-print(f"🔧 Using model tag: {MODEL_TAG}")
-print(f"📄 Model path: {MODEL_PATH}")
-print(f"📄 SAE path:   {SAE_PATH}")
-print(f"📁 Output dir: {OUT_DIR}")
+    print(f"\n🔧 Exporting SAE latents for {MODEL_TAG}")
+    print(f"📄 Base model: {MODEL_PATH}")
+    print(f"📄 SAE model : {SAE_PATH}")
+    print(f"📁 Output    : {OUT_DIR}")
 
+    # --------------------------------------------------
+    # Load base model
+    # --------------------------------------------------
+    ckpt = torch.load(MODEL_PATH, map_location=device)
 
-os.makedirs(OUT_DIR, exist_ok=True)
+    inventory = ckpt["inventory"]
+    phone2idx = ckpt["phone2idx"]
 
-# --------------------------------------------------
-# Load past tense model
-# --------------------------------------------------
-ckpt = torch.load(MODEL_PATH, map_location=DEVICE)
+    model = PastTenseNet(
+        inp=len(inventory) * ckpt["config"]["MAX_PHONES"],
+        hid=ckpt["config"]["HIDDEN_SIZE"],
+        out=len(inventory) * ckpt["config"]["MAX_PHONES"],
+        num_hidden=ckpt["config"]["NUM_HIDDEN_LAYERS"],
+    ).to(device)
 
-inventory = ckpt["inventory"]
-phone2idx = ckpt["phone2idx"]
+    model.load_state_dict(ckpt["state_dict"])
+    model.eval()
 
-model = PastTenseNet(
-    inp=len(inventory) * ckpt["config"]["MAX_PHONES"],
-    hid=ckpt["config"]["HIDDEN_SIZE"],
-    out=len(inventory) * ckpt["config"]["MAX_PHONES"],
-    num_hidden=ckpt["config"]["NUM_HIDDEN_LAYERS"],
-).to(DEVICE)
+    # --------------------------------------------------
+    # Load SAE
+    # --------------------------------------------------
+    sae_ckpt = torch.load(SAE_PATH, map_location=device)
 
-model.load_state_dict(ckpt["state_dict"])
-model.eval()
+    sae = SparseAutoencoder(
+        input_dim=sae_ckpt["config"]["input_dim"],
+        hidden_dim=sae_ckpt["config"]["hidden_dim"],
+        top_k=sae_ckpt["config"]["top_k"],
+    ).to(device)
 
-print(f"📦 Loaded past tense model")
+    sae.load_state_dict(sae_ckpt["state_dict"])
+    sae.eval()
 
-# --------------------------------------------------
-# Load SAE
-# --------------------------------------------------
-sae_ckpt = torch.load(SAE_PATH, map_location=DEVICE)
+    N_LATENTS = sae_ckpt["config"]["hidden_dim"]
 
-sae = SparseAutoencoder(
-    input_dim=sae_ckpt["config"]["input_dim"],
-    hidden_dim=sae_ckpt["config"]["hidden_dim"],
-    top_k=sae_ckpt["config"]["top_k"],
-).to(DEVICE)
+    print(f"🧠 SAE latents: {N_LATENTS}")
 
-sae.load_state_dict(sae_ckpt["state_dict"])
-sae.eval()
+    # --------------------------------------------------
+    # Load verbs
+    # --------------------------------------------------
+    unimorph_path = os.path.join(cache_dir, "unimorph_eng.txt")
+    cmudict_path  = os.path.join(cache_dir, "cmudict.dict")
 
-N_LATENTS = sae_ckpt["config"]["hidden_dim"]
+    verb_pairs = load_unimorph(unimorph_path)
+    cmu = load_cmudict(cmudict_path)
 
-print(
-    f"📦 Loaded SAE "
-    f"(latents={N_LATENTS}, top_k={sae_ckpt['config']['top_k']})"
-)
-
-# --------------------------------------------------
-# Load verbs
-# --------------------------------------------------
-unimorph_path = os.path.join(CACHE_DIR, "unimorph_eng.txt")
-cmudict_path  = os.path.join(CACHE_DIR, "cmudict.dict")
-
-verb_pairs = load_unimorph(unimorph_path)
-cmu = load_cmudict(cmudict_path)
-
-examples: List[Tuple[str, List[str], List[str]]] = []
-
-for vp in verb_pairs:
-    if vp.lemma in cmu and vp.past in cmu:
-        examples.append((
-            vp.lemma,
-            cmu[vp.lemma][0],
-            cmu[vp.past][0],
-        ))
-
-print(f"🔎 Loaded {len(examples)} verb pairs")
-
-# --------------------------------------------------
-# Collect activations
-# --------------------------------------------------
-latent_rows = defaultdict(list)
-
-with torch.no_grad():
-    for lemma, pres, past in examples:
-        x = encode(pres, phone2idx).to(DEVICE)
-
-        _, hidden = model(x.unsqueeze(0), return_hidden=True)
-        _, z = sae(hidden)
-
-        z = z.squeeze(0)
-
-        for latent_id in torch.nonzero(z > MIN_ACT, as_tuple=False):
-            i = latent_id.item()
-            latent_rows[i].append((
-                z[i].item(),
-                lemma,
-                " ".join(pres),
-                " ".join(past),
+    examples = []
+    for vp in verb_pairs:
+        if vp.lemma in cmu and vp.past in cmu:
+            examples.append((
+                vp.lemma,
+                cmu[vp.lemma][0],
+                cmu[vp.past][0],
             ))
 
-# --------------------------------------------------
-# Write CSVs
-# --------------------------------------------------
-for latent_id in range(N_LATENTS):
-    rows = latent_rows.get(latent_id, [])
+    print(f"🔎 Verbs loaded: {len(examples)}")
 
-    if not rows:
-        continue
+    # --------------------------------------------------
+    # Collect activations
+    # --------------------------------------------------
+    from collections import defaultdict
+    latent_rows = defaultdict(list)
 
-    rows.sort(reverse=True, key=lambda x: x[0])
+    with torch.no_grad():
+        for lemma, pres, past in examples:
+            x = encode(pres, phone2idx).to(device)
 
-    out_path = os.path.join(OUT_DIR, f"latent_{latent_id:04d}.csv")
+            _, hidden_states = model(x.unsqueeze(0), return_all_hidden=True)
+            h = get_sae_hidden(hidden_states, cfg.sae_layer)
 
-    with open(out_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow([
-            "activation",
-            "lemma",
-            "present_phones",
-            "past_phones",
-        ])
-        for row in rows:
-            writer.writerow(row)
+            _, z = sae(h)
+            z = z.squeeze(0)
 
-print(f"\n✅ Exported {len(latent_rows)} latent CSV files → {OUT_DIR}")
+            active = torch.nonzero(z > min_activation, as_tuple=False).squeeze(1)
+
+            for i in active.tolist():
+                latent_rows[i].append((
+                    float(z[i]),
+                    lemma,
+                    " ".join(pres),
+                    " ".join(past),
+                ))
+
+    # --------------------------------------------------
+    # Write CSVs
+    # --------------------------------------------------
+    import csv
+
+    written = 0
+    for latent_id, rows in latent_rows.items():
+        rows.sort(key=lambda x: x[0], reverse=True)
+
+        out_path = os.path.join(OUT_DIR, f"latent_{latent_id:04d}.csv")
+
+        with open(out_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                "activation",
+                "lemma",
+                "present_phones",
+                "past_phones",
+            ])
+            writer.writerows(rows)
+
+        written += 1
+
+    print(f"✅ Wrote {written} latent CSVs → {OUT_DIR}")
+
+
+experiments = []
+
+for L in [1, 2, 3, 4]:
+    experiments.append(
+        ExperimentConfig(
+            hidden_size = 256,
+            num_hidden_layers=L,
+            use_sae=True,
+            train_sae=True,
+            finetune_with_sae=False,
+            sae_layer=None,
+        )
+    )
+
+# SAE placements for 3-layer model
+for sae_layer in [0, 1]:
+    for num_hidden_l in [3, 4]:
+        experiments.append(
+            ExperimentConfig(
+                hidden_size = 256,
+                num_hidden_layers=num_hidden_l,
+                use_sae=True,
+                train_sae=True,
+                finetune_with_sae=False,
+                sae_layer=sae_layer,
+            )
+        )
+
+for cfg in experiments:
+    export_sae_latents_for_experiment(
+        cfg,
+        out_root="../Data/sae_latents",
+        min_activation=0.0,
+    )
