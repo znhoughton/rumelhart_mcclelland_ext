@@ -27,10 +27,18 @@ from rumelhart_mcclelland_extension import ExperimentConfig
 def model_tag_from_cfg(cfg: ExperimentConfig) -> str:
     base = f"L{cfg.num_hidden_layers}_H{cfg.hidden_size}"
 
+    # SAE placement tag
     if cfg.sae_layer is None:
-        return f"{base}_SAE@final"
+        sae_part = "SAE@final"
     else:
-        return f"{base}_SAE@L{cfg.sae_layer + 1}"
+        sae_part = f"SAE@L{cfg.sae_layer + 1}"
+
+    # Add top-k tag if present
+    if getattr(cfg, "sae_top_k", None) is not None:
+        sae_part += f"_K{cfg.sae_top_k}"
+
+    return f"{base}_{sae_part}"
+
 
 
 # ============================================================
@@ -102,20 +110,18 @@ def merge_one_experiment(
 # ============================================================
 experiments: List[ExperimentConfig] = []
 
-# SAE on final layer
-# Base SAE on final layer
-
 for L in [1, 2, 3, 4]:
-    experiments.append(
-        ExperimentConfig(
-            hidden_size = 256,
-            num_hidden_layers=L,
-            use_sae=True,
-            train_sae=True,
-            finetune_with_sae=False,
-            sae_layer=None,
+    for num_sae_topk in [5, 10, 15, 20]:
+        experiments.append(
+            ExperimentConfig(
+                hidden_size = 256,
+                num_hidden_layers=L,
+                use_sae=True,
+                train_sae=True,
+                finetune_with_sae=False,
+                sae_top_k=num_sae_topk,
+            )
         )
-    )
 
 # SAE placements for 3-layer model
 for sae_layer in [0, 1]:
@@ -128,8 +134,10 @@ for sae_layer in [0, 1]:
                 train_sae=True,
                 finetune_with_sae=False,
                 sae_layer=sae_layer,
+                sae_top_k = 10,
             )
         )
+
 
 
 # ============================================================

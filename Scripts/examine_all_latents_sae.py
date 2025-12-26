@@ -64,11 +64,17 @@ def export_sae_latents_for_experiment(
 
     if cfg.use_sae:
         if cfg.sae_layer is None:
-            MODEL_TAG = f"{BASE_MODEL_TAG}_SAE@final"
+            sae_part = "SAE@final"
         else:
-            MODEL_TAG = f"{BASE_MODEL_TAG}_SAE@L{cfg.sae_layer + 1}"
+            sae_part = f"SAE@L{cfg.sae_layer + 1}"
+
+        if getattr(cfg, "sae_top_k", None) is not None:
+            sae_part += f"_K{cfg.sae_top_k}"
+
+        MODEL_TAG = f"{BASE_MODEL_TAG}_{sae_part}"
     else:
         raise ValueError("export_sae_latents_for_experiment requires USE_SAE=True")
+
 
     MODEL_PATH = f"../models/past_tense_net_{BASE_MODEL_TAG}.pt"
     SAE_PATH   = f"../models/sae_{MODEL_TAG}.pt"
@@ -191,17 +197,19 @@ def export_sae_latents_for_experiment(
 
 experiments = []
 
+# Base SAE on final layer
 for L in [1, 2, 3, 4]:
-    experiments.append(
-        ExperimentConfig(
-            hidden_size = 256,
-            num_hidden_layers=L,
-            use_sae=True,
-            train_sae=True,
-            finetune_with_sae=False,
-            sae_layer=None,
+    for num_sae_topk in [5, 10, 15, 20]:
+        experiments.append(
+            ExperimentConfig(
+                hidden_size = 256,
+                num_hidden_layers=L,
+                use_sae=True,
+                train_sae=True,
+                finetune_with_sae=False,
+                sae_top_k=num_sae_topk,
+            )
         )
-    )
 
 # SAE placements for 3-layer model
 for sae_layer in [0, 1]:
@@ -214,6 +222,7 @@ for sae_layer in [0, 1]:
                 train_sae=True,
                 finetune_with_sae=False,
                 sae_layer=sae_layer,
+                sae_top_k = 10,
             )
         )
 

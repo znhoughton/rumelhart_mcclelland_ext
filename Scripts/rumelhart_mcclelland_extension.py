@@ -37,6 +37,9 @@ class ExperimentConfig:
     train_sae: bool
     finetune_with_sae: bool
     sae_layer: int | None
+    sae_top_k: int | None = None 
+
+
 
 N_SAMPLES = 80000
 # ============================================================
@@ -77,7 +80,6 @@ SAE_HIDDEN_SIZE = 512
 SAE_L1 = 1e-3
 SAE_EPOCHS = 40000
 SAE_LR = 1e-3
-SAE_TOP_K = 10
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 random.seed(SEED)
@@ -87,6 +89,24 @@ torch.manual_seed(SEED)
 # ============================================================
 # Utilities
 # ============================================================
+
+def model_tag_from_cfg(cfg: ExperimentConfig) -> str:
+    base = f"L{cfg.num_hidden_layers}_H{cfg.hidden_size}"
+
+    if cfg.use_sae:
+        if cfg.sae_layer is None:
+            sae_part = "SAE@final"
+        else:
+            sae_part = f"SAE@L{cfg.sae_layer + 1}"
+
+        if cfg.sae_top_k is not None:
+            sae_part += f"_K{cfg.sae_top_k}"
+
+        return f"{base}_{sae_part}"
+
+    return base
+
+
 def cross_entropy_phone_loss(logits, targets, vocab_size, criterion):
     """
     logits:  [batch, MAX_PHONES * vocab_size]
@@ -232,14 +252,6 @@ def explicit_go_test(model, phone2idx, idx2phone, cmu):
     else:
         print("❌ INCORRECT")
 
-def model_tag_from_cfg(cfg: ExperimentConfig) -> str:
-    base = f"L{cfg.num_hidden_layers}_H{cfg.hidden_size}"
-    if cfg.use_sae:
-        if cfg.sae_layer is None:
-            return f"{base}_SAE@final"
-        else:
-            return f"{base}_SAE@L{cfg.sae_layer + 1}"
-    return base
 
 RESULTS_DIR = "../Data/model_test_results"
 os.makedirs(RESULTS_DIR, exist_ok=True)
@@ -691,18 +703,11 @@ def run_experiment(cfg: ExperimentConfig):
     # Tags + paths (must be per-experiment to avoid overwriting)
     BASE_MODEL_TAG = f"L{NUM_HIDDEN_LAYERS}_H{HIDDEN_SIZE}"
 
-    if USE_SAE:
-        if SAE_LAYER is None:
-            MODEL_TAG = f"{BASE_MODEL_TAG}_SAE@final"
-        else:
-            MODEL_TAG = f"{BASE_MODEL_TAG}_SAE@L{SAE_LAYER+1}"
-
-        
-    else:
-        MODEL_TAG = BASE_MODEL_TAG
+    MODEL_TAG = model_tag_from_cfg(cfg)
 
     MODEL_PATH = f"../models/past_tense_net_{MODEL_TAG}.pt"
     SAE_PATH   = f"../models/sae_{MODEL_TAG}.pt"
+
 
     # IMPORTANT: choose whether the fixed train sample is shared across runs.
     # If you want it shared across ALL experiments, do NOT include MODEL_TAG here.
@@ -984,7 +989,7 @@ def run_experiment(cfg: ExperimentConfig):
         sae = SparseAutoencoder(
             input_dim=HIDDEN_SIZE,
             hidden_dim=SAE_HIDDEN_SIZE,
-            top_k=SAE_TOP_K,
+            top_k = cfg.sae_top_k,
         ).to(DEVICE)
 
 
@@ -1036,7 +1041,7 @@ def run_experiment(cfg: ExperimentConfig):
                 sae = SparseAutoencoder(
                     input_dim=hidden_train.shape[1],
                     hidden_dim=SAE_HIDDEN_SIZE,
-                    top_k=SAE_TOP_K,
+                    top_k = cfg.sae_top_k,
                 ).to(DEVICE)
 
 
@@ -1054,7 +1059,7 @@ def run_experiment(cfg: ExperimentConfig):
                 recon_loss = ((recon - hidden_train) ** 2).mean()
                 sparsity_loss = z.abs().mean()
 
-                if SAE_TOP_K is not None:
+                if cfg.sae_top_k is not None:
                     loss = recon_loss
                 else:
                     loss = recon_loss + SAE_L1 * sparsity_loss
@@ -1106,7 +1111,7 @@ def run_experiment(cfg: ExperimentConfig):
                     "config": {
                         "input_dim": sae.encoder.in_features,
                         "hidden_dim": SAE_HIDDEN_SIZE,
-                        "top_k": SAE_TOP_K,
+                        "top_k": cfg.sae_top_k
                     },
                 },
                 SAE_PATH,
@@ -1319,16 +1324,17 @@ if __name__ == "__main__":
     # SAE finetuning on all depths (default = final layer)
     # --------------------------------------------------
     for L in [1, 2, 3, 4]:
-        experiments.append(
-            ExperimentConfig(
-                hidden_size = 256,
-                num_hidden_layers=L,
-                use_sae=True,
-                train_sae=True,
-                finetune_with_sae=False,
-                sae_layer=None,
+        for num_sae_topk in [5, 10, 15, 20]:
+            experiments.append(
+                ExperimentConfig(
+                    hidden_size = 256,
+                    num_hidden_layers=L,
+                    use_sae=True,
+                    train_sae=True,
+                    finetune_with_sae=False,
+                    sae_top_k=num_sae_topk,
+                )
             )
-        )
 
     # --------------------------------------------------
     # Extra SAE placements for 3-layer model
@@ -1343,6 +1349,7 @@ if __name__ == "__main__":
                     train_sae=True,
                     finetune_with_sae=False,
                     sae_layer=sae_layer,
+                    sae_top_k = 10,
                 )
             )
 

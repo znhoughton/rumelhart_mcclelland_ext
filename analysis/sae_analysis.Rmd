@@ -12,146 +12,48 @@ output: html_document
 ## 
 
 ```{r}
-
 library(tidyverse)
+library(purrr)
+library(stringr)
 
-MIN_LEN <- 1          # minimum phones in pattern
-MIN_WSUP <- 0      # minimum activation-weighted support
-ALPHA <- 1.25          # length reward exponent
-TOP_K <- 50           # patterns per latent
+data_dir <- "../Data/sae_latents_long"
 
-split_phones <- function(x) str_split(x, "\\s+")[[1]]
-
-all_substrings <- function(phones) {
-  n <- length(phones)
-  out <- character(0)
-  for (i in seq_len(n)) {
-    for (j in i:n) {
-      out <- c(out, paste(phones[i:j], collapse = " "))
-    }
-  }
-  out
-}
-
-# Keep patterns that are not "dominated" by a longer one with >= same w_support.
-remove_dominated <- function(df) {
-  # df must already be sorted descending by length then score
-  keep <- logical(nrow(df))
-  for (i in seq_len(nrow(df))) {
-    pat <- df$pattern[i]
-    # if there exists a longer pattern that contains this pattern and has >= same w_support,
-    # then the shorter is probably not the real pattern
-    longer <- df %>%
-      filter(length > df$length[i], w_support >= df$w_support[i]) %>%
-      pull(pattern)
-    keep[i] <- !any(str_detect(longer, fixed(pat)))
-  }
-  df[keep, ]
-}
-
-MODEL_TAGS <- c(
-  "L1_H256"
+model_files <- list.files(
+  data_dir,
+  pattern = "\\.csv$",
+  full.names = TRUE
 )
 
-df_for_model <- function(model_tag,
-                                       data_dir = "../Data",
-                                       min_len = 1,
-                                       min_wsup = 0.7,
-                                       alpha = 1.25,
-                                       top_k = 50) {
+MODEL_TAGS <- basename(model_files) |>
+  str_replace("\\.csv$", "")
 
-  input_csv <- file.path(
-    data_dir,
-    paste0("sae_latents_long_", model_tag, ".csv")
-  )
-
-  message("🔎 Processing ", model_tag)
-
-  df <- read_csv(input_csv, show_col_types = FALSE) %>%
-    mutate(
-      phones = map(present_phones, split_phones),
-      activation = as.numeric(activation)
-    ) %>%
-    filter(is.finite(activation), activation > 0)
-}
-
-#df_l1 = df_for_model("L1_H256")
-```
-
-```{r}
-min_len = 1
-min_wsup = 0.7
-alpha = 1.25
-top_k = 50
-#write_csv(patterns_ranked, "../Data/latent_patterns_weighted_length_reward.csv")
-df_l3 <- read_csv("../Data/sae_latents_long/L3_H256_SAE@final.csv", show_col_types = FALSE) %>%
-    mutate(
-      phones = map(present_phones, split_phones),
-      activation = as.numeric(activation)
-    ) %>%
-    filter(is.finite(activation), activation > 0)
-
-patterns_l3 <- df_l3 %>%
-  select(latent_id, lemma, activation, phones) %>%
-  mutate(substrings = map(phones, all_substrings)) %>%
-  unnest(substrings) %>%
-  transmute(
-    latent_id,
-    lemma,
-    activation,
-    pattern = substrings,
-    length = str_count(pattern, " ") + 1
-  ) %>%
-  filter(length >= min_len) %>%
-  distinct(latent_id, lemma, pattern, length, .keep_all = TRUE) %>%
-  group_by(latent_id, pattern, length) %>%
-  summarise(
-    act_sum_in_pattern = sum(activation),
-    n_verbs = n_distinct(lemma),
-    .groups = "drop"
-  ) %>%
-  group_by(latent_id) %>%
-  mutate(
-    act_total = sum(df_l3$activation[df_l3$latent_id == first(latent_id)]),
-    w_support = act_sum_in_pattern / act_total,
-    score = w_support * (length ^ alpha)
-  ) %>%
-  ungroup() %>%
-  filter(w_support >= min_wsup)
-```
-
-```{r}
-MODEL_TAGS <- c(
-  "L1_H256_SAE@final",
-  "L2_H256_SAE@final",
-  "L3_H256_SAE@final",
-  "L3_H256_SAE@L1",
-  "L3_H256_SAE@L2",
-  "L4_H256_SAE@final",
-  "L4_H256_SAE@L1",
-  "L4_H256_SAE@L2"
-)
+MODEL_TAGS
 
 extract_patterns_for_model <- function(model_tag,
-                                       data_dir = "../Data",
+                                       data_dir = "../Data/sae_latents_long",
                                        min_len = 1,
                                        min_wsup = 0.7,
                                        alpha = 1.25,
                                        top_k = 50) {
 
-  input_csv <- file.path(
-    data_dir,
-    paste0("sae_latents_long/", model_tag, ".csv")
-  )
+  input_csv <- file.path(data_dir, paste0(model_tag, ".csv"))
 
   message("🔎 Processing ", model_tag)
 
   df <- read_csv(input_csv, show_col_types = FALSE) %>%
     mutate(
-      phones = map(present_phones, split_phones),
+      phones = map(present_phones, ~str_split(.x, "\\s+")[[1]]),
       activation = as.numeric(activation)
     ) %>%
     filter(is.finite(activation), activation > 0)
+
+  # ---- total number of lemmas per latent ----
+  latent_item_totals <- df %>%
+    group_by(latent_id) %>%
+    summarise(
+      total_items = n_distinct(lemma),
+      .groups = "drop"
+    )
 
   patterns <- df %>%
     select(latent_id, lemma, activation, phones) %>%
@@ -172,57 +74,36 @@ extract_patterns_for_model <- function(model_tag,
       n_verbs = n_distinct(lemma),
       .groups = "drop"
     ) %>%
+    left_join(latent_item_totals, by = "latent_id") %>%
     group_by(latent_id) %>%
     mutate(
       act_total = sum(df$activation[df$latent_id == first(latent_id)]),
       w_support = act_sum_in_pattern / act_total,
+      prop_items = n_verbs / total_items,   # <<— NEW
       score = w_support * (length ^ alpha)
     ) %>%
     ungroup() %>%
     filter(w_support >= min_wsup)
 
-  patterns_ranked <- patterns %>%
+  patterns %>%
     group_by(latent_id) %>%
     slice_max(order_by = score, n = 1, with_ties = FALSE) %>%
     ungroup() %>%
     mutate(model_tag = model_tag)
-
-  patterns_ranked
 }
 
 
-patterns_by_model <- map(
-  MODEL_TAGS,
-  extract_patterns_for_model
-)
+patterns_by_model <- MODEL_TAGS %>%
+  set_names() %>%
+  map(extract_patterns_for_model)
 
-names(patterns_by_model) <- MODEL_TAGS
+patterns_all <- bind_rows(patterns_by_model)
 
-
-```
-
-```{r}
-library(dplyr)
-library(tidyr)
-library(stringr)
-library(purrr)
 
 extract_phones <- function(pattern) {
   str_split(pattern, "\\s+")[[1]]
 }
 
-patterns_all <- bind_rows(patterns_by_model)
-
-# ---- model-level summary ----
-patterns_all %>%
-  group_by(model_tag) %>%
-  summarise(
-    mean_motif_len = mean(length),
-    mean_support   = mean(w_support),
-    .groups = "drop"
-  )
-
-# ---- phone diversity per latent ----
 latent_phone_stats <- patterns_all %>%
   mutate(phones = map(pattern, extract_phones)) %>%
   group_by(model_tag, latent_id) %>%
@@ -232,21 +113,8 @@ latent_phone_stats <- patterns_all %>%
     .groups = "drop"
   )
 
-# ---- model-level phone diversity ----
-phone_diversity_summary <- latent_phone_stats %>%
-  group_by(model_tag) %>%
-  summarise(
-    n_latents        = n(),
-    mean_n_phones    = mean(n_phones),
-    median_n_phones  = median(n_phones),
-    sd_n_phones      = sd(n_phones),
-    min_n_phones     = min(n_phones),
-    max_n_phones     = max(n_phones),
-    .groups = "drop"
-  )
-
-
 ```
+
 
 ```{r}
 library(ggplot2)
@@ -291,6 +159,3 @@ ggplot(latent_phone_stats, aes(x = n_phones, color = model_tag)) +
 
 ```
 
-```{r}
-
-```
