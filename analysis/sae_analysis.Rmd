@@ -29,6 +29,8 @@ MODEL_TAGS <- basename(model_files) |>
 
 MODEL_TAGS
 
+
+
 extract_patterns_for_model <- function(model_tag,
                                        data_dir = "../Data/sae_latents_long",
                                        min_len = 1,
@@ -112,6 +114,13 @@ latent_phone_stats <- patterns_all %>%
     phones_set = list(sort(unique(unlist(phones)))),
     .groups = "drop"
   )
+
+```
+
+```{r}
+df1 = read_csv('../Data/sae_latents_long/L3_H256_SAE@final_K5.csv')
+df2 = read_csv('../Data/sae_latents_long/L3_H256_SAE@final_K15.csv')
+df3 = read_csv('../Data/sae_latents_long/L3_H256_SAE@final_K20.csv')
 
 ```
 

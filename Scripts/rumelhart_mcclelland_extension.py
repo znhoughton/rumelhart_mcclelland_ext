@@ -76,7 +76,7 @@ SAE_EARLY_STOPPING = True
 SAE_ES_PATIENCE   = 500      # epochs without improvement
 SAE_ES_MIN_DELTA  = 1e-5     # absolute improvement threshold
 SAE_ES_MIN_EPOCHS = 750      # don't stop too early
-SAE_HIDDEN_SIZE = 512
+SAE_HIDDEN_SIZE = 1024
 SAE_L1 = 1e-3
 SAE_EPOCHS = 40000
 SAE_LR = 1e-3
@@ -1332,6 +1332,7 @@ if __name__ == "__main__":
                     use_sae=True,
                     train_sae=True,
                     finetune_with_sae=False,
+                    sae_layer = None,
                     sae_top_k=num_sae_topk,
                 )
             )

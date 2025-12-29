@@ -1,0 +1,554 @@
+lemma,present_phones,gold_past_phones,pred_past_phones,exact,morph_ok,edit_distance
+digest,D AY JH EH S T,D AY JH EH S T IH D,AO AY JH EH S T AH D,0,0,2
+swish,S W IH SH,S W IH SH T,S W IH SH T,1,1,0
+relegate,R EH L AH G EY T,R EH L AH G EY T IH D,R EH L AH G EY T IH D,1,1,0
+deprive,D IH P R AY V,D IH P R AY V D,D IH P R AY Z D,0,1,1
+take,T EY K,T UH K,T EY K,0,0,1
+infuse,IH N F Y UW Z,IH N F Y UW Z D,IH N F Y UW Z D,1,1,0
+note,N OW T,N OW T AH D,N OW T IH D,0,0,1
+wine,W AY N,W AY N D,W AY N D,1,1,0
+demobilize,D IH M OW B AH L AY Z,D IH M OW B AH L AY Z D,D IH M IH M AH L AY Z,0,0,3
+rot,R AA T,R AA T IH D,R AA T IH D,1,1,0
+sponge,S P AH N JH,S P AH N JH D,S P AH N IY D,0,1,1
+mail,M EY L,M EY L D,M EY L D,1,1,0
+overstay,OW V ER S T EY,OW V ER S T EY D,OW V ER S T IH D,0,1,1
+antagonize,AE N T AE G AH N AY Z,AE N T AE G AH N AY Z D,IH G T AE M AH N AY D,0,0,4
+seep,S IY P,S IY P T,S IY P T,1,1,0
+throttle,TH R AA T AH L,TH R AA T AH L D,P R AA T AH L D,0,1,1
+tabulate,T AE B Y AH L EY T,T AE B Y AH L EY T IH D,S AE AW Y AH L EY T IH,0,0,3
+try,T R AY,T R AY D,T R AY D,1,1,0
+decertify,D IY S ER T AH F AY,D IY S ER T AH F AY D,D IH S ER AA AH L IH D,0,1,4
+launder,L AO N D ER,L AO N D ER D,L EH N D ER D,0,1,1
+stroll,S T R OW L,S T R OW L D,S T R OW L D,1,1,0
+price,P R AY S,P R AY S T,P R AY V T,0,1,1
+energize,EH N ER JH AY Z,EH N ER JH AY Z D,EH V ER UH AY Z D,0,1,2
+disburse,D IH S B ER S,D IH S B ER S T,D IH S B ER S T,1,1,0
+highlight,HH AY L AY T,HH AY L AY T IH D,Y AY L AY T IH D,0,1,1
+bombard,B AA M B AA R D,B AA M B AA R D IH D,K EY M B AW EY D AH D,0,0,5
+keep,K IY P,K EH P T,W AO P T,0,0,2
+dilute,D AY L UW T,D AY L UW T AH D,D AY L AY T IH D,0,0,2
+undercut,AH N D ER K AH T,AH N D ER K AH T,AH N D ER K EY T AH D,0,0,3
+short,SH AO R T,SH AO R T IH D,SH AO R T IH D,1,1,0
+presume,P R IH Z UW M,P R AH Z UW M D,P R IH D UW M IH,0,0,3
+nab,N AE B,N AE B D,N EH L D,0,1,2
+love,L AH V,L AH V D,L EY F D,0,1,2
+fancy,F AE N S IY,F AE N S IY D,F AE N S IY D,1,1,0
+overexpose,OW V ER IH K S P OW Z,OW V ER IH K S P OW Z D,OW V ER IH SH T AE SH T,0,0,6
+pin,P IH N,P IH N D,P IH N D,1,1,0
+increase,IH N K R IY S,IH N K R IY S T,IH N K R IY S T,1,1,0
+brush,B R AH SH,B R AH SH T,B R AH SH T,1,1,0
+ache,EY K,EY K T,EY AY D,0,0,2
+wager,W EY JH ER,W EY JH ER D,W EY JH ER D,1,1,0
+tweet,T W IY T,T W IY T IH D,T W IY T IH D,1,1,0
+disclose,D IH S K L OW Z,D IH S K L OW Z D,D IH S K L AY Z D,0,1,1
+spike,S P AY K,S P AY K T,S P OW K,0,0,2
+defy,D IH F AY,D IH F AY D,D IH F AY D,1,1,0
+book,B UH K,B UH K T,B UH K T,1,1,0
+berend,B EH R EH N D,B EH R AH N T,B AA R EH N T,0,0,2
+bounce,B AW N S,B AW N S T,B AW N S T,1,1,0
+reject,R IH JH EH K T,R IH JH EH K T IH D,R IH JH EH N T IH D,0,1,1
+swarm,S W AO R M,S W AO R M D,S W AO R M D L AY Z,0,0,3
+plummet,P L AH M AH T,P L AH M AH T IH D,P L AH M EY T IH D,0,1,1
+redecorate,R IY D EH K ER EY T,R IY D EH K ER EY T IH D,R IY D AH K ER EY T IH,0,0,2
+corner,K AO R N ER,K AO R N ER D,K AO R N ER D,1,1,0
+condense,K AH N D EH N S,K AH N D EH N S T,R AH N D AH N D T D,0,0,4
+savage,S AE V AH JH,S AE V IH JH D,S AE V AH JH D,0,1,1
+slur,S L ER,S L ER D,S L ER D,1,1,0
+gift,G IH F T,G IH F T AH D,D IH F T IH D,0,0,2
+finesse,F IH N EH S,F IH N EH S T,F IH B EH S T,0,1,1
+astonish,AH S T AA N IH SH,AH S T AA N IH SH T,AH G T IH N IH SH T T,0,0,3
+knuckle,N AH K AH L,N AH K AH L D,N AH K AH L D,1,1,0
+notify,N OW T AH F AY,N OW T AH F AY D,N OW T AH F AY Z D D,0,0,2
+secede,S IH S IY D,S IH S IY D IH D,S IH S IY D,0,0,2
+underserve,AH N D ER S ER V,AH N D ER S ER V D,AH N D ER S T UH D,0,1,2
+upload,AH P L OW D,AH P L OW D IH D,AH P L OW D IH D,1,1,0
+unfold,AH N F OW L D,AH N F OW L D IH D,AE N V OW Z D,0,0,5
+grab,G R AE B,G R AE B D,G R AE B T,0,0,1
+glance,G L AE N S,G L AE N S T,AH L AE N S T,0,1,1
+misprice,M IH S P R AY S,M IH S P R AY S T,M IH S K R EH S T,0,1,2
+mortify,M AO R T IH F AY,M AO R T AH F AY D,M AO S T IH D AY Z IH,0,0,5
+plan,P L AE N,P L AE N D,P L IY N D,0,1,1
+budget,B AH JH IH T,B AH JH IH T AH D,B AH JH IH T IH D,0,0,1
+cage,K EY JH,K EY JH D,K EY JH D,1,1,0
+jab,JH AE B,JH AE B D,JH AH B D,0,1,1
+fight,F AY T,F AO T,F AY T AH D,0,0,3
+fuse,F Y UW Z,F Y UW Z D,F Y UW Z D,1,1,0
+integrate,IH N T AH G R EY T,IH N T AH G R EY T AH D,IH N T AH G R EY T AH,0,0,1
+fire,F AY ER,F AY ER D,F AY ER D,1,1,0
+bing,B IH NG,B IH N JH D,B IH NG D,0,0,2
+sky,S K AY,S K IY D,S K AY D,0,0,1
+overreach,OW V ER R IY CH,OW V ER R IY CH T,OW V ER R EH T T,0,1,2
+crucify,K R UW S AH F AY,K R UW S AH F AY D,K R G S AH F AY D,0,1,1
+fleece,F L IY S,F L IY S T,F L EH S T,0,1,1
+bake,B EY K,B EY K T,B EY K T,1,1,0
+drawl,D R AO L,D R AO L D,D R AO L D,1,1,0
+slather,S L AE DH ER,S L AE DH ER D,S L EH DH ER D,0,1,1
+modernize,M AA D ER N AY Z,M AA D ER N AY Z D,M AA D ER N AY IH D,0,1,1
+careen,K ER IY N,K ER IY N D,K ER IY N D,1,1,0
+feast,F IY S T,F IY S T IH D,F IY S T AH D,0,0,1
+choose,CH UW Z,CH OW Z,Y UW Z D,0,0,3
+wrangle,R AE NG G AH L,R AE NG G AH L D,R AH NG G AH L D,0,1,1
+indenture,IH N D EH N CH ER,IH N D EH N CH ER D,IH N T AH K CH ER D,0,1,3
+harness,HH AA R N AH S,HH AA R N AH S T,V AA R Y AH S T,0,1,2
+familiarize,F AH M IH L Y ER AY Z,F AH M IH L Y ER AY Z D,F AH M AH L AY ER AY Z,0,0,3
+yank,Y AE NG K,Y AE NG K T,HH AE NG K T,0,1,1
+vilify,V IH L IH F AY,V IH L AH F AY D,V IH L IH F AY D,0,0,1
+convolute,K AA N V AH L UW T,K AA N V AH L UW T AH D,K AA N T AH L IH D AH,0,0,4
+envelope,EH N V AH L OW P,EH N V EH L AH P T,D IH V AH L AH P T,0,0,3
+autograph,AO T AH G R AE F,AO T AH G R AE F T,AO R AH G ER OW N D,0,0,5
+assess,AH S EH S,AH S EH S T,AH P OW S T,0,1,2
+unclassify,AH N K L AE S IH F AY,AH N K L AE S IH F AY D,EH N K L AE S AH,0,0,5
+style,S T AY L,S T AY L D,S T AY L D,1,1,0
+glean,G L IY N,G L IY N D,G L IY N D,1,1,0
+brew,B R UW,B R UW D,B R UW D,1,1,0
+shuffle,SH AH F AH L,SH AH F AH L D,SH AH F AH L D,1,1,0
+herd,HH ER D,HH ER D IH D,HH ER D,0,0,2
+surround,S ER AW N D,S ER AW N D IH D,S ER AW N D,0,0,2
+glass,G L AE S,G L AE S T,G L AE S T,1,1,0
+generalize,JH EH N ER AH L AY Z,JH EH N ER AH L AY Z D,JH EH N S AH N AY Z D,0,1,2
+eradicate,IH R AE D AH K EY T,IH R AE D AH K EY T IH D,IH R IH D AH K EY T IH,0,0,2
+commute,K AH M Y UW T,K AH M Y UW T IH D,K AH M Y UW T IH D,1,1,0
+cling,K L IH NG,K L AH NG,K L IH NG,0,0,1
+acquiesce,AE K W IY EH S,AE K W IY EH S T,AE K W IY EY S D,0,0,2
+watch,W AA CH,W AA CH T,W AA CH T,1,1,0
+upvote,AH P V OW T,AH P V OW T IH D,AH P V OW T IH D,1,1,0
+horse,HH AO R S,HH AO R S T,HH AO R S T,1,1,0
+derange,D IH R EY N JH,D IH R EY N JH D,D IH M EY N JH D,0,1,1
+cross,K R AO S,K R AO S T,K R IH S T,0,1,1
+paste,P EY S T,P EY S T IH D,P EY S T IH D,1,1,0
+hollow,HH AA L OW,HH AA L OW D,HH AA L OW D,1,1,0
+leg,L EH G,L EH G AH D,L EH G D,0,0,1
+relax,R IH L AE K S,R IH L AE K S T,R IH L AE N S T,0,1,1
+massacre,M AE S AH K ER,M AE S AH K ER D,M AE S AH K ER D,1,1,0
+remarry,R IY M EH R IY,R IY M EH R IY D,R IY M AA R IY D,0,1,1
+shirt,SH ER T,SH ER T IH D,SH ER T,0,0,2
+thatch,TH AE CH,TH AE CH T,TH AE T,0,0,1
+resell,R IY S EH L,R IY S OW L D,R IY S EH L D,0,0,1
+rampage,R AE M P EY JH,R AE M P EY JH D,R IY S P T ER D,0,1,4
+seduce,S IH D UW S,S IH D UW S T,S AH D UW S T,0,1,1
+spend,S P EH N D,S P EH N T,S P EH N D,0,0,1
+ave,AA V EY,AE D,AA R IH D,0,0,3
+unlock,AH N L AA K,AH N L AA K T,AH N D OW K T,0,1,2
+henpeck,HH EH N P EH K,HH EH N P EH K T,R AH N P EH K D,0,0,3
+follow,F AA L OW,F AA L OW D,F AA L OW D,1,1,0
+pirate,P AY R AH T,P AY R AH T IH D,P AY R AH T IH D,1,1,0
+encroach,IH N K R OW CH,IH N K R OW CH T,IH N K L AY N D,0,0,4
+rupture,R AH P CH ER,R AH P CH ER D,R AH S CH ER D,0,1,1
+depose,D IH P OW Z,D IH P OW Z D,D IH P OW Z D,1,1,0
+author,AO TH ER,AO TH ER D,AO TH ER D,1,1,0
+avenge,AH V EH N JH,AH V EH N JH D,AH V EH N JH D,1,1,0
+allocate,AE L AH K EY T,AE L AH K EY T IH D,AE L AH K EY T IH D,1,1,0
+excise,EH K S AY S,EH K S AY Z D,EH K S AY S D,0,0,1
+con,K AA N,K AA N D,K AA N D,1,1,0
+caress,K ER EH S,K ER EH S T,K ER EH S T,1,1,0
+graze,G R EY Z,G R EY Z D,G R EY Z D,1,1,0
+remit,R IY M IH T,R IY M IH T IH D,R IY M IH T IH D,1,1,0
+tongue,T AH NG,T AH NG D,T AH NG,0,0,1
+overlay,OW V ER L EY,OW V ER L EY D,OW V ER L EY D,1,1,0
+request,R IH K W EH S T,R IH K W EH S T IH D,R IY K W EH S T,0,0,3
+claim,K L EY M,K L EY M D,K L EY M D,1,1,0
+emphasize,EH M F AH S AY Z,EH M F AH S AY Z D,EH AH F AH S AY Z D,0,1,1
+cart,K AA R T,K AA R T IH D,K AA R T,0,0,2
+swatch,S W AA CH,S W AA CH T,S W AA CH T,1,1,0
+tailor,T EY L ER,T EY L ER D,T EY L ER D,1,1,0
+manage,M AE N AH JH,M AE N AH JH D,M AE R AH JH D,0,1,1
+evade,IH V EY D,IH V EY D IH D,IH V EY D IH D,1,1,0
+ameliorate,AH M IY L Y ER EY T,AH M IY L Y ER EY T IH D,AH B AE L Y ER EY T IH,0,0,3
+bobble,B AO B AH L,B AO B AH L D,F AO R AH L D,0,1,2
+redirect,R IY D ER EH K T,R IY D ER EH K T IH D,R IY D ER AE K T IH D,0,1,1
+infatuate,IH N F AE CH UW EY T,IH N F AE CH UW EY T IH D,IH N SH AE P IY EY T AH,0,0,5
+misstate,M IH S S T EY T,M IH S S T EY T IH D,D IH S K T EY T IH D,0,1,2
+bug,B AH G,B AH G D,B AE G D,0,1,1
+cuff,K AH F,K AH F T,K AH F T,1,1,0
+scale,S K EY L,S K EY L D,S K EY L D,1,1,0
+execute,EH K S AH K Y UW T,EH K S AH K Y UW T IH D,IH N S AH K Y UW D,0,0,4
+finish,F IH N IH SH,F IH N IH SH T,F IH N IH SH T,1,1,0
+degrade,D IH G R EY D,D IH G R EY D AH D,D IH G R EY D IH D,0,0,1
+repel,R IH P EH L,R AH P EH L D,R IH P EH L D,0,0,1
+rankle,R AE NG K AH L,R AE NG K AH L D,HH AE NG K AH L D,0,1,1
+cater,K EY T ER,K EY T ER D,K EY T ER D,1,1,0
+debase,D AH B EY S,D AH B EY S T,F AH B EY ER D,0,0,3
+bruise,B R UW Z,B R UW Z D,B R UW Z D,1,1,0
+raze,R EY Z,R EY Z D,R OW Z D,0,1,1
+overwork,OW V ER W ER K,OW V ER W ER K T,OW V ER W UH K T,0,1,1
+rocket,R AA K AH T,R AA K AH T IH D,R IH K AH T EY D,0,0,2
+abort,AH B AO R T,AH B AO R T IH D,AH B AO R T IH D,1,1,0
+sprout,S P R AW T,S P R AW T IH D,S P R AY T,0,0,3
+shroud,SH R AW D,SH R AW D IH D,SH R AW D IH D,1,1,0
+affiliate,AH F IH L IY EY T,AH F IH L IY EY T IH D,AH V IH L M EY T IH D,0,1,2
+devolve,D IH V AA L V,D IH V AA L V D,D IH V AA L V D,1,1,0
+absolve,AH B Z AA L V,AH B Z AA L V D,AH B Z AA L V D,1,1,0
+withdraw,W IH DH D R AO,W IH TH D R UW,R IH M D R OW P T IH,0,0,6
+jelly,JH EH L IY,JH EH L IY D,R EH L IY D,0,1,1
+row,R OW,R OW D,R OW D,1,1,0
+install,IH N S T AO L,IH N S T AO L D,IH N S T R L D,0,1,1
+affix,AE F IH K S,AH F IH K S T,AE Y AE K S T ER D,0,0,5
+chronicle,K R AA N IH K AH L,K R AA N IH K AH L D,K R AA N IH K AY Z D,0,1,2
+site,S AY T,S AY T IH D,S AY T,0,0,2
+bomb,B AA M,B AA M D,B AA M D,1,1,0
+refuse,R AH F Y UW Z,R AH F Y UW Z D,R AH F Y UW Z D,1,1,0
+persecute,P ER S AH K Y UW T,P ER S AH K Y UW T IH D,P ER S AH K Y UW D,0,0,2
+dangle,D AE NG G AH L,D AE NG G AH L D,HH AE NG G AH L D,0,1,1
+jacket,JH AE K AH T,JH AE K AH T IH D,AE AE K AH L AY D D,0,0,4
+tenure,T EH N Y ER,T EH N Y ER D,T AO N D ER D,0,1,2
+band,B AE N D,B AE N D IH D,B AE N D AH D,0,0,1
+microwave,M AY K R AH W EY V,M AY K R OW W EY V D,W AY K R AH L EY T IH,0,0,5
+flower,F L AW ER,F L AW ER D,F L AW N D,0,1,1
+fudge,F AH JH,F AH JH D,F AH JH D,1,1,0
+nibble,N IH B AH L,N IH B AH L D,N IH B AH L D,1,1,0
+attenuate,AH T EH N Y UW EY T,AH T EH N Y UW EY T IH D,AH L EH N Y IY EY T IH,0,0,3
+abash,AH B AE SH,AH B AE SH T,AH T AE SH T IH D,0,0,3
+spurn,S P ER N,S P ER N D,S P ER N D,1,1,0
+race,R EY S,R EY S T,R EY S T,1,1,0
+plant,P L AE N T,P L AE N T IH D,P L AH N T AH D,0,0,2
+mute,M Y UW T,M Y UW T IH D,M Y UW T AH EH,0,0,2
+overturn,OW V ER T ER N,OW V ER T ER N D,OW V ER T IH D,0,0,2
+longe,L AA N JH,L AO NG D,L AA N D,0,0,2
+confuse,K AH N F Y UW Z,K AH N F Y UW Z D,K AH N F Y AY D D,0,1,2
+see,S IY,S AO,S EH D,0,0,2
+encounter,IH N K AW N T ER,IH N K AW N T ER D,IH N K AE N T AH D,0,1,2
+belt,B EH L T,B EH L T AH D,B EH L T,0,0,2
+lock,L AA K,L AA K T,L AA K T,1,1,0
+cope,K OW P,K OW P T,K OW P T,1,1,0
+backset,B AE K S EH T,B AE K S EH T,F S K S AH T IH D,0,0,5
+shear,SH IH R,SH IH R D,SH IH R D,1,1,0
+retire,R IH T AY R,R IH T AY R D,R IH T AY N D,0,1,1
+straggle,S T R AE G AH L,S T R AE G AH L D,S T R AE G AH L D,1,1,0
+jet,JH EH T,JH EH T IH D,JH EH T,0,0,2
+welcome,W EH L K AH M,W EH L K AH M D,W EH L T AH JH D,0,1,2
+seek,S IY K,S AO T,S IY K T,0,0,2
+institute,IH N S T AH T UW T,IH N S T AH T UW T IH D,IH N S T AH D,0,0,4
+arch,AA R CH,AA R CH T,AA R G D,0,0,2
+tool,T UW L,T UW L D,T UW L D,1,1,0
+politicize,P AH L IH T IH S AY Z,P AH L IH T IH S AY Z D,Y UW L IH T IH D,0,0,5
+ripple,R IH P AH L,R IH P AH L D,R IH P AH L D,1,1,0
+wick,W IH K,W IH K AH D,W IH K T,0,0,2
+humanize,HH Y UW M AH N AY Z,HH Y UW M AH N AY Z D,IH Y UW M AH N AY Z T,0,0,2
+lose,L UW Z,L AO S T,L UW Z D,0,0,3
+reinstall,R IY IH N S T AA L,R IY IH N S T AA L D,R IY G N S T AY L D,0,1,2
+disgorge,D IH S G AO R JH,D IH S G AO R JH D,D IH S G,0,0,4
+draw,D R AO,D R UW,D R AO D,0,0,2
+consult,K AH N S AH L T,K AH N S AH L T AH D,K AH N S AH N D,0,0,3
+gerrymander,JH EH R IY M AE N D ER,JH EH R IY M AE N D ER D,AH EH JH IY M AE IH D IH ZH,0,0,5
+sear,S IH R,S IH R D,S IH R D,1,1,0
+decide,D IH S AY D,D IH S AY D IH D,D IH F AY D IH D,0,1,1
+pry,P R AY,P R AY D,P R AY D,1,1,0
+abide,AH B AY D,AH B OW D,AH B AY D IH D,0,0,3
+board,B AO R D,B AO R D AH D,B AO R D,0,0,2
+report,R IY P AO R T,R IY P AO R T IH D,R IY P AO R T IH D,1,1,0
+itemize,AY T AH M AY Z,AY T AH M AY Z D,S T AH G AY IH D,0,1,3
+speed,S P IY D,S P EH D,S P L D,0,0,1
+impede,IH M P IY D,IH M P IY D IH D,IH M P IY D,0,0,2
+wound,W AW N D,W UW N D IH D,Y AW N D AH D,0,0,3
+shovel,SH AH V AH L,SH AH V AH L D,SH AH V AH L D,1,1,0
+circumcise,S ER K AH M S AY Z,S ER K AH M S AY Z D,S P K AH IY S AY Z D,0,1,2
+recertify,R IY S ER T AH F AY,R IY S ER T IH F AY D,R OW S ER AA AH F IH D,0,1,4
+regale,R IH G EY L,R IH G EY L D,R IH G EY L D,1,1,0
+progress,P R AA G R EH S,P R AH G R EH S T,P R S G AW N S T,0,0,3
+handhold,HH AE N D HH OW L D,HH AE N D HH EH L D,Y AE Z D L D,0,0,4
+rip,R IH P,R IH P T,R IH P T,1,1,0
+faile,F EY L,F EY L D,F EY L D,1,1,0
+rate,R EY T,R EY T IH D,R EY T IH D,1,1,0
+grumble,G R AH M B AH L,G R AH M B AH L D,G R AH M B AH L D,1,1,0
+motorize,M OW T ER AY Z,M OW T ER AY Z D,M IH D ER D,0,0,4
+starch,S T AA R CH,S T AA R CH T,S T AA R IH T,0,1,1
+dredge,D R EH JH,D R EH JH D,D R EH JH D,1,1,0
+clash,K L AE SH,K L AE SH T,K L AE SH T,1,1,0
+exhaust,IH G Z AO S T,IH G Z AO S T IH D,IH G Z ER S T IH D,0,1,1
+undercook,AH N D ER K UH K,AH N D ER K UH K T,AH N D ER K UH K D,0,0,1
+backhand,B AE K HH AE N D,B AE K HH AE N D IH D,HH AE K SH AH N UW AH D,0,0,5
+sneer,S N IH R,S N IH R D,S N IH R D,1,1,0
+gin,JH IH N,JH IH N D,JH EH N D,0,1,1
+blue,B L UW,B L UW D,B L UW D,1,1,0
+sob,S AA B,S AA B D,S AA B D,1,1,0
+mash,M AE SH,M AE SH T,M AE SH T,1,1,0
+adore,AH D AO R,AH D AO R D,AH N AO R D IH L S T,0,0,5
+scare,S K EH R,S K EH R D,S K EH R D,1,1,0
+plait,P L EY T,P L EY T IH D,P L EY T IH D,1,1,0
+compress,K AA M P R EH S,K AH M P R EH S T,K L M P R AY S T AH,0,0,3
+elbow,EH L B OW,EH L B OW D,EH M B AY D D,0,0,3
+resolve,R IY Z AA L V,R IY Z AA L V D,R IY Z AA L V D,1,1,0
+impinge,IH M P IH N JH,IH M P IH N JH D,IH N P AA AH S D,0,1,4
+half,HH AE F,HH AE V D,HH AE F T,0,0,2
+repeat,R IH P IY T,R IH P IY T IH D,R IH P IY M,0,0,3
+flout,F L AW T,F L AW T IH D,F L AE T AH D,0,0,2
+outburst,AW T B ER S T,AW T B ER S T,S AH B EH S T,0,0,3
+polymerize,P AA L IH M ER AY Z,P AA L IH M ER AY Z D,K AA L IH M ER AY Z D,0,1,1
+intrude,IH N T R UW D,IH N T R UW D AH D,IH N T R UW D AH D,1,1,0
+ruse,R UW Z,R UW Z D,R UW Z D,1,1,0
+misconceive,M IH S K AH N S IY V,M IH S K AH N S IY V D,M AE S K AH N S IY D,0,0,2
+advertise,AE D V ER T AY Z,AE D V ER T AY Z D,AE UW V ER T AY Z D,0,1,1
+creep,K R IY P,K R EH P T,K R IY P T,0,0,1
+revamp,R IY V AE M P,R IY V AE M P T,R IY K AE M S T Z D,0,0,4
+liquidate,L IH K W IH D EY T,L IH K W IH D EY T IH D,L IH K T AH D EY D,0,0,4
+puncture,P AH NG K CH ER,P AH NG K CH ER D,P AH S K UH L D,0,1,3
+castigate,K AE S T AH G EY T,K AE S T AH G EY T IH D,K AE S T AH G EY T IH,0,0,1
+wreck,R EH K,R EH K T,R EH K T,1,1,0
+pace,P EY S,P EY S T,P EY S T,1,1,0
+gobble,G AA B AH L,G AA B AH L D,G AA B AH L D,1,1,0
+control,K AH N T R OW L,K AH N T R OW L D,K AH N T R AH V D,0,1,2
+conjure,K AA N JH ER,K AA N JH ER D,K AH N D ER D,0,1,2
+roost,R UW S T,R UW S T IH D,R UW S T IH D,1,1,0
+surge,S ER JH,S ER JH D,S ER JH D,1,1,0
+beard,B IH R D,B IH R D AH D,B IH R D,0,0,2
+still,S T IH L,S T IH L D,S T IH L D,1,1,0
+denigrate,D EH N AH G R EY T,D EH N IH G R EY T IH D,D EH N AH G R EY T IH,0,0,2
+rile,R AY L,R AY L D,R OW L D,0,1,1
+unplug,AH N P L AH G,AH N P L AH G D,EH N P L EY JH D,0,1,3
+countenance,K AW N T AH N AH N S,K AW N T AH N AH N S T,K AW N T AH N Y UW D,0,0,4
+pony,P OW N IY,P OW N IY D,P EH N IY D,0,1,1
+mirror,M IH R ER,M IH R ER D,M IH R ER D,1,1,0
+uphold,AH P HH OW L D,AH P HH EH L D,AH S V OW Z D,0,0,4
+hamstring,HH AE M S T R IH NG,HH AE M S T R AH NG,HH AE M AH T R D,0,0,3
+void,V OY D,V OY D IH D,V ER D D,0,0,2
+delegate,D EH L AH G EY T,D EH L AH G EY T AH D,D EH L AH G EY T IH D,0,0,1
+underuse,AH N D ER Y UW Z,AH N D ER Y UW Z D,AE N D ER D UH UH AH D,0,0,5
+victimize,V IH K T AH M AY Z,V IH K T AH M AY Z D,CH IH K T AH M AY Z D,0,1,1
+bulldoze,B UH L D OW Z,B UH L D OW Z D,Y OY L D OW Z D,0,1,2
+punctuate,P AH NG K CH UW EY T,P AH NG K CH UW EY T IH D,P AH NG K Y UW EY T IH,0,0,2
+attribute,AE T R AH B Y UW T,AH T R IH B Y AH T IH D,IH AE G AH K R EY T T,0,0,9
+migrate,M AY G R EY T,M AY G R EY T IH D,S IH T R EY T IH D,0,1,3
+okay,OW K EY,OW K EY D,AH K UW D,0,1,2
+undergo,AH N D ER G OW,AH N D ER W EH N T,AE N D ER K UH D,0,0,5
+crumple,K R AH M P AH L,K R AH M P AH L D,K L AH M P AH L D,0,1,1
+legitimize,L AH JH IH T AH M AY Z,L IH JH IH T AH M AY Z D,L K T IH T AH L AY Z,0,0,4
+groom,G R UW M,G R UW M D,G R UW M D,1,1,0
+finalize,F AY N AH L AY Z,F AY N AH L AY Z D,F AY N AH L AY Z D,1,1,0
+renovate,R EH N AH V EY T,R EH N AH V EY T IH D,R EH N AH V EY T IH D,1,1,0
+blab,B L AE B,B L AE B D,B L AE B D,1,1,0
+discipline,D IH S AH P L AH N,D IH S AH P L AH N D,M IH S AH P L D,0,0,3
+bilk,B IH L K,B IH L K T,B IH L K,0,0,1
+end,EH N D,EH N D AH D,EH N D ER D,0,0,1
+trounce,T R AW N S,T R AW N S T,T R AW N S D,0,0,1
+bum,B AH M,B AH M D,B EY M D,0,1,1
+recede,R IH S IY D,R AH S IY D IH D,R IH S IY D,0,0,3
+knight,N AY T,N AY T IH D,N AY T AH D,0,0,1
+penalize,P EH N AH L AY Z,P IY N AH L AY Z D,P EH N AH L AY Z D,0,0,1
+amplify,AE M P L AH F AY,AE M P L AH F AY D,AE M P L AH T IH D,0,1,2
+ruffle,R AH F AH L,R AH F AH L D,R AH F AH L D,1,1,0
+beget,B IH G EH T,B IY G AO T,B IH G EH T,0,0,2
+tally,T AE L IY,T AE L IY D,T AE L IY D,1,1,0
+skewer,S K Y UW ER,S K Y UW ER D,S K R UW ER D,0,1,1
+destroy,D IH S T R OY,D IH S T R OY D,D IH S T R S T,0,0,2
+monitor,M AA N AH T ER,M AA N AH T ER D,M UW N AH T AY D,0,1,2
+chant,CH AE N T,CH AE N T IH D,CH AE N T IH D,1,1,0
+shudder,SH AH D ER,SH AH D ER D,SH AH D ER D,1,1,0
+curse,K ER S,K ER S T,K ER S T,1,1,0
+decorate,D EH K ER EY T,D EH K ER EY T IH D,D IH K ER EY T IH D,0,1,1
+ambush,AE M B UH SH,AE M B UH SH T,F M R Y SH T,0,1,3
+raid,R EY D,R EY D IH D,R EY D IH D,1,1,0
+assist,AH S IH S T,AH S IH S T IH D,AH S IH S T IH D,1,1,0
+carve,K AA R V,K AA R V D,K AA R V D,1,1,0
+trigger,T R IH G ER,T R IH G ER D,T R IH G,0,0,2
+hit,HH IH T,HH IH T,HH IH T,1,1,0
+brave,B R EY V,B R EY V D,B R EY,0,0,2
+vest,V EH S T,V EH S T IH D,V EH S T IH D,1,1,0
+cave,K EY V,K EY V D,K EY V D,1,1,0
+preach,P R IY CH,P R IY CH T,P R IY CH T,1,1,0
+transpose,T R AE N S P OW Z,T R AE N S P OW Z D,T IY AE N S F ER AY M,0,0,5
+raise,R EY Z,R EY Z D,R OW Z D,0,1,1
+darn,D AA R N,D AA R N D,D AA R V D,0,1,1
+regret,R AH G R EH T,R IH G R EH T IH D,R AH G R EY T IH D,0,1,2
+characterize,K EH R AH K T ER AY Z,K EH R AH K T ER AY Z D,T AA R AH S CH ER D Z,0,0,6
+annul,AE N AH L,AE N AH L D,AE N AH L D,1,1,0
+bleach,B L IY CH,B L IY CH T,B L EH CH T,0,1,1
+rummage,R AH M IH JH,R AH M IH JH D,R AH M IH JH D,1,1,0
+quicken,K W IH K AH N,K W IH K AH N D,K W IH K AH L D,0,1,1
+paralyze,P EH R AH L AY Z,P EH R AH L AY Z D,P EH R AH L AY Z D,1,1,0
+regiment,R EH JH AH M AH N T,R EH JH AH M EH N T IH D,R EH Z EH M AH EY T IH,0,0,5
+pot,P AA T,P AA T IH D,P AA T IH D,1,1,0
+tie,T AY,T AY D,T AY D,1,1,0
+backdate,B AE K D EY T,B AE K D EY T IH D,B AE K T AH T IH D,0,1,2
+disable,D IH S EY B AH L,D IH S EY B AH L D,D IH S EY M AH L D,0,1,1
+sculpture,S K AH L P CH ER,S K AH L P CH ER D,S K AH L P CH ER D,1,1,0
+coil,K OY L,K OY L D,K OY L D,1,1,0
+subtitle,S AH B T AY T AH L,S AH B T AY T AH L D,S AH B UW S T IH D,0,0,4
+withstand,W IH TH S T AE N D,W IH TH S T UH D,W UW Z EH T AH L OW IH SH,0,0,8
+behold,B IH HH OW L D,B IY HH EH L D,B IH HH OW R D,0,0,3
+thumb,TH AH M,TH AH M D,HH EY M,0,0,3
+knot,N AA T,N AA T IH D,N AA T AH D,0,0,1
+warehouse,W EH R HH AW S,W EH R HH AW Z D,Y UW N B AH S T,0,0,7
+counterfeit,K AW N T ER F IH T,K AW N T ER F IH T IH D,K AW N T AH D AY T IH,0,0,4
+swing,S W IH NG,S W AH NG,S W AE T,0,0,2
+hole,HH OW L,HH OW L D,HH OW L D,1,1,0
+discharge,D IH S CH AA R JH,D IH S CH AA R JH D,D IH S CH AA R JH D,1,1,0
+serrate,S EH R EY T,S EH R EY T IH D,S EH R EY T IH D,1,1,0
+cast,K AE S T,K AE S T,K AE S T,1,1,0
+er,ER,EH R D,ER JH,0,0,3
+slice,S L AY S,S L AY S T,S L AY R T,0,1,1
+agitate,AE JH AH T EY T,AE JH AH T EY T IH D,AE S AH T EY T IH D,0,1,1
+drug,D R AH G,D R AH G D,D R AH G D,1,1,0
+deal,D IY L,D EH L T,D IH L D,0,0,2
+undermine,AH N D ER M AY N,AH N D ER M AY N D,AE N V ER D,0,0,5
+giggle,G IH G AH L,G IH G AH L D,G R G AH L AY,0,0,2
+refile,R IY F AY L,R IY F AY L D,R IY F AY Z D,0,1,1
+privilege,P R IH V L AH JH,P R IH V L AH JH D,P R AH T EY T JH D,0,1,4
+mustachio,M AH S T AE SH IY OW,M AH S T AE SH IY OW D,M AH S T IH N Y UW D,0,1,4
+caricature,K EH R AH K AH CH ER,K ER IH K AH CH ER D,G EH R AH P T EY T IH,0,0,9
+vote,V OW T,V OW T IH D,R OW T IH D,0,1,1
+fret,F R EH T,F R EH T IH D,F R EH T AH D,0,0,1
+boggle,B AA G AH L,B AA G AH L D,B AE G AH L D,0,1,1
+hallow,HH AE L OW,HH AE L OW D,HH AE L OW D,1,1,0
+swell,S W EH L,S W EH L D,S W EH L T,0,0,1
+secrete,S IH K R IY T,S AH K R IY T IH D,S AY K R IY T,0,0,3
+relend,R IY L EH N D,R IH L EH N T,R IY L EH N T,0,1,1
+result,R IH Z AH L T,R IH Z AH L T IH D,R IH Z EH L T,0,0,3
+negotiate,N AH G OW SH IY EY T,N AH G OW SH IY EY T AH D,EH M R IH S T EY Z IH,0,0,9
+lurk,L ER K,L ER K T,L IY K T,0,1,1
+evaporate,IH V AE P ER EY T,IH V AE P ER EY T AH D,IH V S P ER EY T IH D,0,0,2
+preference,P R EH F ER AH N S,P R EH F ER AH N S T,P R EH F ER D,0,0,4
+jog,JH AA G,JH AA G D,JH AA JH D,0,1,1
+tow,T OW,T OW D,T OW D,1,1,0
+program,P R OW G R AE M,P R OW G R AE M D,P R OW G R AE M D,1,1,0
+rug,R AH G,R AH G AH D,R AH G D D,0,0,1
+die,D AY,D AY D,D AY D,1,1,0
+unemploy,AH N IH M P L OY,AH N EH M P L OY D,AH K AH M P L IH D,0,0,3
+dot,D AA T,D AA T AH D,D AA T IH D,0,0,1
+texture,T EH K S CH ER,T EH K S CH ER D,T EH K S T ER D,0,1,1
+overmatch,OW V ER M AE CH,OW V ER M AE CH T,OW V ER M AE CH AH,0,0,1
+even,IY V IH N,IY V AH N D,OW V IH N JH K T,0,0,5
+overshoot,OW V ER SH UW T,OW V ER SH AA T,OW V ER S EY T IH,0,0,3
+wrap,R AE P,R AE P T,R AE P T,1,1,0
+tuck,T AH K,T AH K T,T AH K T,1,1,0
+improve,IH M P R UW V,IH M P R UW V D,IH M P R UW V D,1,1,0
+sag,S AE G,S AE G D,S AE G D,1,1,0
+paw,P AO,P AO D,P AO D,1,1,0
+translate,T R AE N Z L EY T,T R AE N Z L EY T IH D,T R AE N EH M EY T IH,0,0,3
+seat,S IY T,S IY T IH D,S IY T,0,0,2
+blurt,B L ER T,B L ER T IH D,B L ER T,0,0,2
+unbalance,AH N B AE L AH N S,AH N B AE L AH N S T,IH N V AE L AH N T T,0,1,3
+attempt,AH T EH M P T,AH T EH M P T IH D,AH K AH M P T IH SH D,0,0,3
+commence,K AH M EH N S,K AH M EH N S T,K AH M AH N S T,0,1,1
+chortle,CH AO R T AH L,CH AO R T AH L D,CH AO L T AH L AY,0,0,2
+squirrel,S K W ER AH L,S K W ER AH L D,S K W R EY L D,0,1,2
+rub,R AH B,R AH B D,R AH B D,1,1,0
+brainstorm,B R EY N S T AO R M,B R EY N S T AO R M D,T R AE N S AE AO R M,0,0,4
+bid,B IH D,B IH D,B IH D,1,1,0
+mitigate,M IH T AH G EY T,M IH T AH G EY T IH D,M EH T AH G EY T AH D,0,0,2
+endear,EH N D IY R,EH N D IY R D,EH N HH IY JH D,0,1,2
+resettle,R IY S EH T AH L,R IY S EH T AH L D,R IH S EH T AH L D,0,1,1
+reacquire,R IY AH K W AY R,R IY AH K W AY R D,R IY F K AY AY Z D,0,1,3
+arraign,ER EY N,ER EY N D,G EY N D,0,1,1
+dabble,D AE B AH L,D AE B AH L D,D IH B AH L D,0,1,1
+toll,T OW L,T OW L D,T OW L D,1,1,0
+date,D EY T,D EY T IH D,D EY T AH D,0,0,1
+curb,K ER B,K ER B D,K ER IY D,0,1,1
+fantasize,F AE N T AH S AY Z,F AE N T IH S AY Z D,F AE N T AH S AY Z D,0,1,1
+drone,D R OW N,D R OW N D,D R OW V D,0,1,1
+praise,P R EY Z,P R EY Z D,P R EY Z D,1,1,0
+foreclose,F AO R K L OW Z,F AO R K L OW Z D,F AO R K ER AY Z D,0,1,2
+imagine,IH M AE JH AH N,IH M AE JH AH N D,IH M AE JH AH N D,1,1,0
+syndicate,S IH N D IH K AH T,S IH N D IH K EY T IH D,S AE Z D IH K EY T IH,0,0,3
+punch,P AH N CH,P AH N CH T,P AH N CH T,1,1,0
+breach,B R IY CH,B R IY CH T,B R IY CH T,1,1,0
+localize,L OW K AH L AY Z,L OW K AH L AY Z D,L OW K AH L AY Z D,1,1,0
+fail,F EY L,F EY L D,F EY L D,1,1,0
+probe,P R OW B,P R OW B D,P R OW Z ER D,0,0,2
+permeate,P ER M IY EY T,P ER M IY EY T IH D,P ER IY IY EY T IH D,0,1,1
+quit,K W IH T,K W IH T,K W IH T IH D,0,0,2
+wrench,R EH N CH,R EH N CH T,R EH N CH T,1,1,0
+denature,D IH N EY CH ER,D IH N EY CH ER D,R IH M EY T IH D,0,1,4
+pave,P EY V,P EY V D,P EY V D,1,1,0
+throat,TH R OW T,TH R OW T IH D,TH R OW,0,0,3
+gather,G AE DH ER,G AE DH ER D,G EY UW ER D,0,1,2
+permit,P ER M IH T,P ER M IH T IH D,P ER M IH T IH D,1,1,0
+charm,CH AA R M,CH AA R M D,CH AA R M D,1,1,0
+sew,S OW,S OW D,S OW D,1,1,0
+fascinate,F AE S AH N EY T,F AE S AH N EY T AH D,P AE S AH N EY T AH D,0,1,1
+petition,P AH T IH SH AH N,P AH T IH SH AH N D,P AH T IH SH AH N D,1,1,0
+finance,F AH N AE N S,F IH N AE N S T,F AH B AE N S T,0,1,2
+cajole,K AH JH OW L,K AH JH OW L D,K AH Y Y L D,0,1,2
+name,N EY M,N EY M D,N EY M D,1,1,0
+ostracize,AO S T R AH S AY Z,AO S T R AH S AY Z D,EH S T R AH S AY Z D,0,1,1
+waste,W EY S T,W EY S T IH D,W EY S T,0,0,2
+fortify,F AO R T IH F AY,F AO R T AH F AY D,F AO L T IH F AY D,0,0,2
+blush,B L AH SH,B L AH SH T,B L AH SH T,1,1,0
+brandish,B R AE N D IH SH,B R AE N D IH SH T,B R AE N T IH S T AY,0,0,3
+lop,L AA P,L AA P T,L AA P T,1,1,0
+peeve,P IY V,P IY V D,P IY V D,1,1,0
+tar,T AA R,T AA R D,T AA R D,1,1,0
+coach,K OW CH,K OW CH T,K OW CH T,1,1,0
+target,T AA R G AH T,T AA R G AH T IH D,T AA R G N T IH D,0,1,1
+drain,D R EY N,D R EY N D,D R EY N D,1,1,0
+discuss,D IH S K AH S,D IH S K AH S T,D IH S K AH S T,1,1,0
+polarize,P OW L ER AY Z,P OW L ER AY Z D,P OW L ER AY AY D,0,1,1
+debut,D EY B Y UW,D EY B Y UW D,D IH B Y UW D,0,1,1
+believe,B IH L IY V,B IH L IY V D,B IH L IY V D,1,1,0
+waft,W AA F T,W AA F T IH D,W AA F T,0,0,2
+sense,S EH N S,S EH N S T,S EH N S T,1,1,0
+frown,F R AW N,F R AW N D,F R AW N D,1,1,0
+slate,S L EY T,S L EY T IH D,S L EY T IH D,1,1,0
+duck,D AH K,D AH K T,D IH K T,0,1,1
+gaze,G EY Z,G EY Z D,G EY Z D,1,1,0
+visualize,V IH ZH W AH L AY Z,V IH ZH W AH L AY Z D,V IH K R AH L AY Z D,0,1,2
+transect,T R AE N S EH K T,T R AE N S EH K T IH D,T R AE N S G EY T IH,0,0,3
+network,N EH T W ER K,N EH T W ER K T,N AO T AH N AY T IH D,0,0,6
+ray,R EY,R EY D,R EY D,1,1,0
+abet,AH B EH T,AH B EH T IH D,AH B AA T IH D,0,1,1
+rectify,R EH K T AH F AY,R EH K T AH F AY D,R EH K T AH F AY D,1,1,0
+revitalize,R IY V AY T AH L AY Z,R IY V AY T AH L AY Z D,R OW Z AY T AH L AY Z,0,0,3
+sulk,S AH L K,S AH L K T,S AH L K T,1,1,0
+tour,T UH R,T UH R D,T AO R D,0,1,1
+shellac,SH EH L AE K,SH EH L AE K D,SH P L AE N T,0,0,3
+initialize,IH N IH SH AH L AY Z,IH N IH SH AH L AY Z D,IH AE IH SH AH L AY Z D,0,1,1
+twig,T W IH G,T W IH G D,T W IH G D,1,1,0
+shuttle,SH AH T AH L,SH AH T AH L D,SH AH T AH L D,1,1,0
+breeze,B R IY Z,B R IY Z D,B R IY Z D,1,1,0
+affect,AH F EH K T,AH F EH K T IH D,AH K EH K T AH D D,0,0,3
+persevere,P ER S AH V IH R,P ER S AH V IH R D,P ER S AH V AO R D,0,1,1
+taunt,T AO N T,T AO N T IH D,T AO N T IH D,1,1,0
+belate,B IH L EY T,B IH L EY T IH D,B IH L EY T IH D,1,1,0
+endorse,EH N D AO R S,EH N D AO R S T,EH N HH AA R S T,0,1,2
+overload,OW V ER L OW D,OW V ER L OW D IH D,OW V ER L OW D,0,0,2
+vex,V EH K S,V EH K S T,V EH K T,0,0,1
+listen,L IH S AH N,L IH S AH N D,L IH S AH N D,1,1,0
+moan,M OW N,M OW N D,M OW N D,1,1,0
+phrase,F R EY Z,F R EY Z D,G R EY Z D,0,1,1
+denude,D IH N UW D,D IH N UW D IH D,D IH N UW D IH D,1,1,0
+relay,R IY L EY,R IY L EY D,R IY L EY D,1,1,0
+rationalize,R AE SH AH N AH L AY Z,R AE SH AH N AH L AY Z D,R AH M IH N AH L AY Z,0,0,4
+forbid,F ER B IH D,F ER B IH D,F IH B IH D IH D,0,0,3
+lease,L IY S,L IY S T,L IY S T,1,1,0
+gulp,G AH L P,G AH L P T,K AE L P T,0,1,2
+bulge,B AH L JH,B AH L JH D,K AH L JH D,0,1,1
+pivot,P IH V AH T,P IH V AH T IH D,D IH V AH T IH D,0,1,1
+mishandle,M IH S HH AE N D AH L,M IH S HH AE N D AH L D,M IH S AA UH N T AH D,0,0,4
+garb,G AA R B,G AA R B D,G AA R B D,1,1,0
+salary,S AE L ER IY,S AE L ER IY D,S AE L ER IY D,1,1,0
+uniform,Y UW N AH F AO R M,Y UW N AH F AO R M D,Y UW N AH F AY Z AH D,0,1,3
+blaze,B L EY Z,B L EY Z D,B L EY Z D,1,1,0
+slap,S L AE P,S L AE P T,S L AE P T,1,1,0
+buck,B AH K,B AH K T,B EY K T,0,1,1
+flock,F L AA K,F L AA K T,F L AA K T,1,1,0
+collaborate,K AH L AE B ER EY T,K AH L AE B ER EY T IH D,K AH L R B L EY T IH,0,0,3
+question,K W EH S CH AH N,K W EH S CH AH N D,K W EH K T AH L AY D,0,0,4
+terrorize,T EH R ER AY Z,T EH R ER AY Z D,T AO R ER D,0,0,3
+serialize,S IH R IY AH L AY Z,S IH R IY AH L AY Z D,S AE R IY AH L AY Z D,0,1,1
+pander,P AE N D ER,P AE N D ER D,P AE N D ER D,1,1,0
+elate,IH L EY T,IH L EY T AH D,IH L EY T IH D,0,0,1
+tag,T AE G,T AE G D,T AE G D,1,1,0
+rebound,R IY B AW N D,R IY B AW N D IH D,R IY F AW N D,0,0,3
+brim,B R IH M,B R IH M D,B R AO M D,0,1,1
+spurt,S P ER T,S P ER T IH D,S P P T,0,0,3
+cloister,K L OY S T ER,K L OY S T ER D,K L IH S T ER D,0,1,1
+exile,EH G Z AY L,EH G Z AY L D,EH G Z AY Z D,0,1,1
+clock,K L AA K,K L AA K T,K L AA K T,1,1,0
+operate,AA P ER EY T,AA P ER EY T AH D,AA R IH EY T IH D,0,0,3
+dine,D AY N,D AY N D,D AY N D,1,1,0
+wrack,R AE K,R AE K T,R AE K T,1,1,0
+preset,P R IY S EH T,P R IY S EH T,P R IY S EH T IH D,0,0,2
+hammer,HH AE M ER,HH AE M ER D,HH AE D ER D,0,1,1
+mix,M IH K S,M IH K S T,D IH D ER T,0,1,3
+fish,F IH SH,F IH SH T,F IH SH T,1,1,0
+transpire,T R AE N S P AY ER,T R AE N S P AY ER D,T R AE N S F AO R M,0,0,4
+sue,S UW,S UW D,S UW D,1,1,0
+interfere,IH N T ER F IH R,IH N T ER F IH R D,IH N T ER D AH R D,0,1,2
+muse,M Y UW Z,M Y UW Z D,G Y UW JH D,0,1,2
+outlaw,AW T L AO,AW T L AO D,AW T L EH D,0,1,1
+encompass,EH N K AH M P AH S,EH N K AH M P AH S T,EH N K OW AH P K S D,0,0,4
+augment,AO G M EH N T,AA G M EH N T IH D,AO D M EH N T AH D,0,0,3
+jostle,JH AA S AH L,JH AA S AH L D,JH AA P AH L D,0,1,1
+work,W ER K,W ER K T,W ER K T,1,1,0
+stabilize,S T EY B AH L AY Z,S T EY B AH L AY Z D,S T EY B AH L AY Z D,1,1,0
+imbed,IH M B EH D,IH M B EH D IH D,EH M B EH D IH D,0,1,1
+underinsure,AH N D ER IH N SH AO R,AH N D ER IH N SH AO R D,AH N D ER K UH K P AH,0,0,6

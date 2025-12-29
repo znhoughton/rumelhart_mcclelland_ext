@@ -119,6 +119,7 @@ for L in [1, 2, 3, 4]:
                 use_sae=True,
                 train_sae=True,
                 finetune_with_sae=False,
+                sae_layer = None,
                 sae_top_k=num_sae_topk,
             )
         )
